@@ -2,31 +2,37 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
+
+    protected $table = 'users';
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
+     * Các trường được phép fill.
      */
     protected $fillable = [
-        'name',
+        'username',
         'email',
         'password',
+        'full_name',
+        'phone',
+        'address',
+        'avatar',
+        'role',
+        'google_id',
+        'facebook_id',
+        'email_verified_at',
+        'remember_token',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
+     * Các trường không được trả về JSON.
      */
     protected $hidden = [
         'password',
@@ -34,15 +40,60 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Chuyển đổi kiểu dữ liệu.
      */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'created_at'        => 'datetime',
+        'updated_at'        => 'datetime',
+        'deleted_at'        => 'datetime',
+    ];
+
+    /**
+     * Quan hệ: User có nhiều Orders
+     */
+    public function orders()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Quan hệ: User có nhiều Reviews
+     */
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Quan hệ: User có nhiều coupon usage
+     */
+    public function couponUsage()
+    {
+        return $this->hasMany(CouponUsage::class);
+    }
+
+    /**
+     * Quan hệ: User có thể viết nhiều News
+     */
+    public function news()
+    {
+        return $this->hasMany(News::class, 'author_id');
+    }
+
+    /**
+     * Quan hệ: User có nhiều cart sessions
+     */
+    public function cartSessions()
+    {
+        return $this->hasMany(CartSession::class);
+    }
+
+    /**
+     * Quan hệ: User có nhiều chatbot conversations
+     */
+    public function chatbotConversations()
+    {
+        return $this->hasMany(ChatbotConversation::class);
     }
 }
