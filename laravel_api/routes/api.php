@@ -3,6 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\StatisticsController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ProductController; // Giả sử bạn đã có controller này để list sp
+
+Route::get('/products', [ProductController::class, 'index']);
+Route::post('/checkout', [OrderController::class, 'checkout']);
 
 // Ghi chú: Middleware 'is_admin' cần được tạo và đăng ký sau này
 // để đảm bảo chỉ admin mới có quyền truy cập vào các route này.
