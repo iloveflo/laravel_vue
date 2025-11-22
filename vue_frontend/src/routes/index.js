@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Index from '../views/index.vue'
 import Login from '../views/login.vue'
 import Register from '../views/register.vue'
+import ForgotPassword from '../views/forgotpassword.vue'
+import ResetPassword from '../views/resetpassword.vue'
 import Admin from '../views/admin.vue'
 import authService from '../services/auth.js'
 
@@ -27,6 +29,17 @@ const routes = [
     name: 'register',
     component: Register,
     meta: { requiresGuest: true }
+  },
+  {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: ForgotPassword,
+    meta: { requiresGuest: true }
+  },
+  {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: ResetPassword,
   },
   {
     path: '/admin',

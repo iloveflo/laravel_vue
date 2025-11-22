@@ -40,6 +40,7 @@
 
       <div class="register-link">
         <p>Chưa có tài khoản? <router-link to="/register">Đăng ký ngay</router-link></p>
+        <p style="margin-top: 10px;"><router-link to="/forgot-password">Quên mật khẩu?</router-link></p>
         <p style="margin-top: 10px; font-size: 12px; color: #999;">Admin vui lòng liên hệ để được cấp tài khoản</p>
       </div>
     </div>
