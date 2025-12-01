@@ -14,8 +14,7 @@ class TestUsersSeeder extends Seeder
     {
         $faker = Faker::create('vi_VN'); // dùng Faker tiếng Việt
 
-        // Tạo 20 users thử nghiệm
-        for ($i = 30; $i <= 50; $i++) {
+        for ($i = 1; $i <= 30; $i++) {
             User::updateOrCreate(
                 ['email' => "user{$i}@example.com"], // email duy nhất
                 [

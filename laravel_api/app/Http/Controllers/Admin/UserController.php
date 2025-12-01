@@ -102,24 +102,6 @@ class UserController extends Controller
         ]);
     }
 
-    // Current authenticated user info
-    public function me(Request $request)
-    {
-        $user = $request->user();
-        if (! $user) {
-            return response()->json(null, 401);
-        }
-
-        return response()->json([
-            'id' => $user->id,
-            'email' => $user->email,
-            'username' => $user->username,
-            'full_name' => $user->full_name,
-            'avatar' => $this->formatAvatar($user->avatar),
-            'role' => $user->role,
-        ]);
-    }
-
     // helper to normalize avatar paths returned by API
     private function formatAvatar($avatar)
     {

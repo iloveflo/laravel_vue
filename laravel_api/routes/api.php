@@ -6,15 +6,15 @@ use App\Http\Controllers\Admin\UserController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
-
-// endpoint to get current authenticated user info
-Route::middleware('auth:sanctum')->get('/admin/me', [UserController::class, 'me']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::middleware('auth:sanctum')->get('/me', [AuthController::class, 'me']);
 
 // Admin users endpoints (protected by sanctum)
 Route::middleware('auth:sanctum')->prefix('admin/users')->group(function() {
     Route::get('/deleted', [UserController::class,'deletedUsers']);       // danh sách đã xóa
     Route::patch('/{id}/restore', [UserController::class,'restore']);    // khôi phục
-
     Route::get('/', [UserController::class,'index']);         // danh sách
     Route::post('/', [UserController::class,'store']);        // tạo user/admin
     Route::get('/{id}', [UserController::class,'show']);      // xem chi tiết
