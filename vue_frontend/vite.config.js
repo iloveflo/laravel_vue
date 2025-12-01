@@ -17,7 +17,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist', // Thư mục output khi build
+    outDir: 'frontend', // Thư mục output khi build
   },
   
   server: {

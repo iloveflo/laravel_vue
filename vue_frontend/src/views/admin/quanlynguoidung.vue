@@ -216,11 +216,11 @@ export default {
       try {
         let res = null
         try {
-          res = await axios.get('/admin/me', { withCredentials: true })
+          res = await axios.get('/me', { withCredentials: true })
         } catch (err) {
           const token = localStorage.getItem('token')
           if (token) {
-            res = await axios.get('/admin/me', { headers: { Authorization: `Bearer ${token}` } })
+            res = await axios.get('/me', { headers: { Authorization: `Bearer ${token}` } })
           } else {
             throw err
           }
@@ -231,8 +231,7 @@ export default {
       }
     }
 
-    const backendOrigin = import.meta.env.VITE_BACKEND_URL || (window.location.protocol + '//' + window.location.hostname + ':8000')
-
+    const backendOrigin = import.meta.env.VITE_BACKEND_URL || window.location.origin;
     const avatarPath = (path) => {
       if (!path) return null
       const p = String(path)
@@ -277,6 +276,19 @@ export default {
     }
 
     const saveUser = async () => {
+      // ---- VALIDATE ----
+      if (!selectedUser.value.full_name?.trim()) {
+        return alert("Full Name không được để trống");
+      }
+      if (!selectedUser.value.phone?.trim()) {
+        return alert("Phone không được để trống");
+      }
+      if (!/^[0-9]{10}$/.test(selectedUser.value.phone)) {
+        return alert("Phone phải gồm đúng 10 chữ số");
+      }
+      if (!selectedUser.value.address?.trim()) {
+        return alert("Address không được để trống");
+      }
       const formData = new FormData()
       // Do not append the avatar URL string (Laravel expects a file for 'avatar' when validating 'image').
       for (const key in selectedUser.value) {
@@ -331,10 +343,54 @@ export default {
     }
 
     const createAdmin = async () => {
-      // client-side password confirmation check
+          
+      // ================= VALIDATION =================
+      if (!newAdmin.value.username?.trim()) {
+        return alert("Username không được để trống");
+      }
+
+      if (!newAdmin.value.email?.trim()) {
+        return alert("Email không được để trống");
+      }
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(newAdmin.value.email)) {
+        return alert("Email không hợp lệ!");
+      }
+
+      if (!newAdmin.value.full_name?.trim()) {
+        return alert("Full name không được để trống");
+      }
+
+      if (!newAdmin.value.phone?.trim()) {
+        return alert("Số điện thoại không được để trống");
+      }
+
+      if (!/^[0-9]{10}$/.test(newAdmin.value.phone)) {
+        return alert("Số điện thoại phải gồm đúng 10 chữ số");
+      }
+
+      if (!newAdmin.value.address?.trim()) {
+        return alert("Địa chỉ không được để trống");
+      }
+
+      if (!newAdmin.value.password?.trim()) {
+        return alert("Password không được để trống");
+      }
+
+      if (newAdmin.value.password.length < 8) {
+        return alert("Mật khẩu phải có ít nhất 8 ký tự");
+      }
+
+      if (!newAdmin.value.password_confirmation?.trim()) {
+        return alert("Vui lòng nhập lại mật khẩu");
+      }
+
       if (newAdmin.value.password !== newAdmin.value.password_confirmation) {
-        alert('Mật khẩu và nhập lại mật khẩu không khớp')
-        return
+        return alert("Mật khẩu và nhập lại mật khẩu không khớp");
+      }
+
+      if (!newAdmin.value.current_admin_password?.trim()) {
+        return alert("Bạn phải nhập password admin đang login để xác nhận");
       }
 
       const formData = new FormData()
@@ -362,7 +418,7 @@ export default {
     }
 
 
-     const fetchDeletedUsers = async () => {
+    const fetchDeletedUsers = async () => {
       const res = await axios.get('/admin/users/deleted', { withCredentials: true })
       deletedUsers.value = res.data
     }

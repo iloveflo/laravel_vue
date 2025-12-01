@@ -1,24 +1,47 @@
 <template>
 <div class="admin-container">
-<aside class="sidebar">
-		<div v-if="currentUser" class="mt-6 user-info">
-            <img v-if="currentUser.avatar" :src="avatarPath(currentUser.avatar)" style="width:70px;height:70px;border-radius:9999px;object-fit:cover;display:block"/>
-			<div class="font-semibold">{{ currentUser.full_name || currentUser.username }}</div>
-			<div class="text-sm text-gray-700">{{ currentUser.email }}</div>
-		</div>
-        <router-link to="/admin/quan-ly-nguoi-dung">Quản lý người dùng</router-link>
-        <router-link to="/admin/quan-ly-san-pham">Quản lý sản phẩm</router-link>
-        <router-link to="/admin/quan-ly-gio-hang">Quản lý giỏ hàng</router-link>
-        <router-link to="/admin/thong-ke-bao-cao">Thống kê báo cáo</router-link>
 
-	<div class="logout-wrap">
-		<button @click="logout" class="bg-red-600 text-white px-3 py-2 rounded">Đăng xuất</button>
-	</div>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div v-if="currentUser" class="mt-6 user-info">
+      <img v-if="currentUser.avatar" :src="avatarPath(currentUser.avatar)" class="avatar"/>
+      <div class="font-semibold">{{ currentUser.full_name || currentUser.username }}</div>
+      <div class="text-sm text-gray-700">{{ currentUser.email }}</div>
+    </div>
 
-</aside>
-	<main class="main-content">
-		<router-view />
-	</main>
+    <router-link to="/admin/quan-ly-nguoi-dung">Quản lý người dùng</router-link>
+    <router-link to="/admin/quan-ly-san-pham">Quản lý sản phẩm</router-link>
+    <router-link to="/admin/quan-ly-gio-hang">Quản lý giỏ hàng</router-link>
+    <router-link to="/admin/thong-ke-bao-cao">Thống kê báo cáo</router-link>
+
+    <div class="logout-wrap">
+      <button @click="logout" class="bg-red-600 text-white">Đăng xuất</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <router-view v-slot="{ Component }">
+      <component :is="Component" v-if="Component"/>
+      
+      <!-- WELCOME / INFO TEXT -->
+      <div v-else class="dashboard-welcome">
+        <h1>Chào mừng đến với FLORENTIC Admin</h1>
+        <p>Đây là trung tâm quản lý toàn bộ hệ thống bán hàng FLORENTIC. Trước khi bắt đầu, vui lòng lưu ý các thông tin sau:</p>
+        
+        <ul>
+          <li>Chọn một mục bên trái để quản lý dữ liệu tương ứng.</li>
+          <li class="warning">⚠ Không xóa dữ liệu quan trọng nếu không chắc chắn.</li>
+          <li class="warning">⚠ Chỉ tạo admin mới nếu bạn có quyền Super Admin.</li>
+          <li>Kiểm tra kỹ thông tin người dùng, sản phẩm và đơn hàng trước khi cập nhật.</li>
+          <li>Đăng xuất sau khi hoàn thành công việc để bảo mật.</li>
+        </ul>
+
+        <p>Mọi thao tác đều được ghi lại và có thể xem lại trong báo cáo hoạt động.</p>
+      </div>
+    </router-view>
+  </main>
+
 </div>
 </template>
 
@@ -36,12 +59,12 @@ const fetchCurrentUser = async () => {
 		// First try using cookie (Sanctum) if available
 		let res = null
 		try {
-			res = await axios.get('/admin/me', { withCredentials: true })
+			res = await axios.get('/me', { withCredentials: true })
 		} catch (err) {
 			// fallback to token from localStorage if provided
 			const token = localStorage.getItem('token')
 			if (token) {
-				res = await axios.get('/admin/me', { headers: { Authorization: `Bearer ${token}` } })
+				res = await axios.get('/me', { headers: { Authorization: `Bearer ${token}` } })
 			} else {
 				throw err
 			}
@@ -66,27 +89,42 @@ onBeforeUnmount(() => {
 })
 
 const logout = async () => {
-	try {
-		// attempt server logout (token or cookie)
-		await axios.post('/logout', {}, { withCredentials: true })
-	} catch (e) {
-		// ignore errors
-	}
+  try {
+    const token = localStorage.getItem('token')
+    if (token) {
+      // Gửi token qua header Bearer
+      await axios.post(
+        '/logout',
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+    }
+  } catch (e) {
+    // Ignore lỗi nếu logout trên server thất bại
+    console.error('Logout error:', e)
+  }
 
-	// clear local token and axios header
-	localStorage.removeItem('token')
-	if (axios.defaults.headers.common['Authorization']) {
-		delete axios.defaults.headers.common['Authorization']
-	}
+  // Xóa token local
+  localStorage.removeItem('token')
+  // Xóa remembered email nếu muốn (user bình thường)
+  localStorage.removeItem('rememberedEmail')
 
-	// notify other components
-	window.dispatchEvent(new Event('auth-changed'))
+  // Xóa header Authorization mặc định
+  if (axios.defaults.headers.common['Authorization']) {
+    delete axios.defaults.headers.common['Authorization']
+  }
 
-	// navigate to index
-	router.push('/')
+  // Thông báo các component khác user đã logout
+  window.dispatchEvent(new Event('auth-changed'))
+
+  // Chuyển về trang chủ
+  router.push('/')
 }
 
-const backendOrigin = import.meta.env.VITE_BACKEND_URL || (window.location.protocol + '//' + window.location.hostname + ':8000')
+
+const backendOrigin = import.meta.env.VITE_BACKEND_URL || window.location.origin;
 
 const avatarPath = (path) => {
 	if (!path) return null
