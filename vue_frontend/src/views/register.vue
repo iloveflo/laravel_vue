@@ -1,279 +1,212 @@
 <template>
-  <div class="register-container">
-    <div class="register-box">
-      <h2>Đăng ký</h2>
-      
-      <div v-if="errorMessage" class="error-message">
-        {{ errorMessage }}
+  <div class="register-page">
+    <h2>Đăng ký</h2>
+
+    <form @submit.prevent="submitRegister" class="register-form">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" v-model="form.username" placeholder="Nhập username" required />
       </div>
 
-      <div v-if="Object.keys(validationErrors).length > 0" class="validation-errors">
-        <ul>
-          <li v-for="(errors, field) in validationErrors" :key="field">
-            <strong>{{ field }}:</strong> {{ errors[0] }}
-          </li>
-        </ul>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" v-model="form.email" placeholder="Nhập email" required />
       </div>
 
-      <form @submit.prevent="handleRegister">
-        <div class="form-group">
-          <label for="email">Email *</label>
-          <input
-            id="email"
-            type="email"
-            v-model="form.email"
-            placeholder="Nhập email"
-            required
-            :disabled="loading"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="full_name">Họ và tên *</label>
-          <input
-            id="full_name"
-            type="text"
-            v-model="form.full_name"
-            placeholder="Nhập họ và tên"
-            required
-            :disabled="loading"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="phone">Số điện thoại *</label>
-          <input
-            id="phone"
-            type="tel"
-            v-model="form.phone"
-            placeholder="Nhập số điện thoại"
-            required
-            :disabled="loading"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="password">Mật khẩu *</label>
-          <input
-            id="password"
-            type="password"
-            v-model="form.password"
-            placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
-            required
-            :disabled="loading"
-            minlength="6"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="password_confirmation">Xác nhận mật khẩu *</label>
-          <input
-            id="password_confirmation"
-            type="password"
-            v-model="form.password_confirmation"
-            placeholder="Nhập lại mật khẩu"
-            required
-            :disabled="loading"
-            minlength="6"
-          />
-        </div>
-
-        <button type="submit" :disabled="loading" class="register-button">
-          <span v-if="loading">Đang đăng ký...</span>
-          <span v-else>Đăng ký</span>
-        </button>
-      </form>
-
-      <div class="login-link">
-        <p>Đã có tài khoản? <router-link to="/login">Đăng nhập ngay</router-link></p>
+      <div class="form-group">
+        <label>Mật khẩu</label>
+        <input type="password" v-model="form.password" placeholder="Nhập mật khẩu" required />
       </div>
-    </div>
+
+      <div class="form-group">
+        <label>Xác nhận mật khẩu</label>
+        <input type="password" v-model="form.password_confirmation" placeholder="Nhập lại mật khẩu" required />
+      </div>
+
+      <div class="form-group">
+        <label>Họ tên</label>
+        <input type="text" v-model="form.full_name" placeholder="Nhập họ tên" />
+      </div>
+
+      <div class="form-group">
+        <label>Số điện thoại</label>
+        <input type="text" v-model="form.phone" placeholder="10 chữ số" />
+      </div>
+
+      <div class="form-group">
+        <label>Địa chỉ</label>
+        <input type="text" v-model="form.address" placeholder="Nhập địa chỉ" />
+      </div>
+
+      <div class="form-group">
+        <label>Avatar</label>
+        <input type="file" @change="onFileChange" />
+      </div>
+
+      <button type="submit" class="btn-register">Đăng ký</button>
+    </form>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import axios from 'axios'
 import { useRouter } from 'vue-router'
-import authService from '../services/auth.js'
 
 const router = useRouter()
 
 const form = ref({
+  username: '',
   email: '',
+  password: '',
+  password_confirmation: '',
   full_name: '',
   phone: '',
-  password: '',
-  password_confirmation: ''
+  address: '',
+  avatar: null
 })
 
-const loading = ref(false)
-const errorMessage = ref('')
-const validationErrors = ref({})
+const errors = ref({})
 
-onMounted(() => {
-  // Nếu đã đăng nhập, redirect theo role
-  if (authService.isAuthenticated()) {
-    const user = authService.getCurrentUser()
-    if (user && user.role === 'admin') {
-      router.push('/admin')
-    } else {
-      router.push('/')
-    }
+function onFileChange(e) {
+  form.value.avatar = e.target.files[0]
+}
+
+async function submitRegister() {
+  errors.value = {} // reset lỗi
+
+  // ======== Frontend validation =========
+  if (!form.value.username) {
+    errors.value.username = 'Username không được để trống'
   }
-})
 
-const handleRegister = async () => {
-  errorMessage.value = ''
-  validationErrors.value = {}
-  loading.value = true
+  if (!form.value.email || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.value.email)) {
+  errors.value.email = 'Email không hợp lệ'
+  }
+
+  if (!form.value.password) {
+    errors.value.password = 'Password không được để trống'
+  } else if (form.value.password.length < 8) {
+    errors.value.password = 'Password phải có ít nhất 8 ký tự'
+  }
+
+  if (form.value.password !== form.value.password_confirmation) {
+    errors.value.password_confirmation = 'Password xác nhận không khớp'
+  }
+
+  if (form.value.phone && !/^\d{10}$/.test(form.value.phone)) {
+    errors.value.phone = 'Phone phải gồm 10 chữ số'
+  }
+
+  if (Object.keys(errors.value).length > 0) {
+    alert('Có lỗi trong form, kiểm tra lại!')
+    return
+  }
+
+  // ======== Tạo FormData ========
+  const formData = new FormData()
+  Object.keys(form.value).forEach(key => {
+    if (form.value[key] !== null) {
+      formData.append(key, form.value[key])
+    }
+  })
 
   try {
-    // Kiểm tra mật khẩu khớp
-    if (form.value.password !== form.value.password_confirmation) {
-      errorMessage.value = 'Mật khẩu xác nhận không khớp'
-      loading.value = false
-      return
-    }
-
-    const result = await authService.register({
-      email: form.value.email,
-      full_name: form.value.full_name,
-      phone: form.value.phone || null,
-      password: form.value.password,
-      password_confirmation: form.value.password_confirmation
+    const response = await axios.post('/register', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     })
-    
-    if (result.success) {
-      // Đăng ký thành công, chuyển đến trang chủ (user)
-      router.push('/')
+
+    alert('Đăng ký thành công!')
+
+    // Reset form
+    Object.keys(form.value).forEach(key => form.value[key] = '')
+
+    // ===== Chuyển hướng về trang login =====
+    router.push('/login')
+
+  } catch (err) {
+    if (err.response?.data?.errors) {
+      errors.value = err.response.data.errors
+      console.log('Backend errors:', errors.value)
+      alert('Username hoặc email đã tồn tại.')
     } else {
-      if (result.errors) {
-        validationErrors.value = result.errors
-      } else {
-        errorMessage.value = result.message || 'Đăng ký thất bại'
-      }
+      console.error(err)
+      alert('Có lỗi xảy ra, thử lại sau.')
     }
-  } catch (error) {
-    errorMessage.value = 'Có lỗi xảy ra khi đăng ký'
-    console.error('Register error:', error)
-  } finally {
-    loading.value = false
   }
 }
 </script>
 
+
 <style scoped>
-.register-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f0f0f0;
-  padding: 20px;
+.register-page {
+  max-width: 480px;
+  margin: 100px auto;
+  padding: 30px 36px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  font-family: "Inter", sans-serif;
+  color: #111;
 }
 
-.register-box {
-  background: white;
-  padding: 30px;
-  border: 1px solid #ddd;
-  width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.register-box h2 {
+.register-page h2 {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 24px;
   text-align: center;
-  margin-bottom: 20px;
-  color: #333;
-  font-size: 24px;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group label {
-  display: block;
-  margin-bottom: 5px;
-  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="password"],
+.form-group input[type="file"] {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   font-size: 14px;
-  box-sizing: border-box;
+  background: #f9fafb;
+  transition: 0.25s;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #666;
+  border-color: #111;
+  background: #fff;
 }
 
-.form-group input:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.register-button {
-  width: 100%;
-  padding: 10px;
-  background: #333;
-  color: white;
+.btn-register {
+  background: #111;
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 12px;
   border: none;
-  font-size: 16px;
+  border-radius: 10px;
   cursor: pointer;
-  margin-top: 10px;
+  transition: 0.25s;
 }
 
-.register-button:hover:not(:disabled) {
-  background: #555;
-}
-
-.register-button:disabled {
-  background: #999;
-  cursor: not-allowed;
-}
-
-.error-message {
-  background-color: #fee;
-  color: #c33;
-  padding: 10px;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.validation-errors {
-  background-color: #fee;
-  color: #c33;
-  padding: 10px;
-  margin-bottom: 15px;
-}
-
-.validation-errors ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.validation-errors li {
-  margin-bottom: 5px;
-}
-
-.login-link {
-  margin-top: 15px;
-  text-align: center;
-  color: #666;
-}
-
-.login-link a {
-  color: #0066cc;
-  text-decoration: none;
-}
-
-.login-link a:hover {
-  text-decoration: underline;
+.btn-register:hover {
+  background: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 </style>
-

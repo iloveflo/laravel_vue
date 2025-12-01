@@ -1,151 +1,86 @@
 <template>
-  <div class="reset-container">
-    <div class="reset-box">
+  <div class="reset-password-page">
+    <div class="reset-container">
       <h2>Đặt lại mật khẩu</h2>
-      
-      <div v-if="errorMessage" class="error-message">
-        {{ errorMessage }}
-      </div>
+      <p>Vui lòng nhập mật khẩu mới của bạn.</p>
 
-      <div v-if="Object.keys(validationErrors).length > 0" class="validation-errors">
-        <ul>
-          <li v-for="(errors, field) in validationErrors" :key="field">
-            <strong>{{ field }}:</strong> {{ errors[0] }}
-          </li>
-        </ul>
-      </div>
-
-      <form @submit.prevent="handleResetPassword" v-if="!successMessage">
+      <form @submit.prevent="submitReset">
         <div class="form-group">
-          <label for="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            v-model="form.email"
-            placeholder="Nhập email"
-            required
-            :disabled="loading || true"
-            readonly
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="password">Mật khẩu mới *</label>
+          <label for="password">Mật khẩu mới</label>
           <input
             id="password"
             type="password"
-            v-model="form.password"
-            placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+            v-model="password"
+            placeholder="Ít nhất 8 ký tự"
             required
-            :disabled="loading"
-            minlength="6"
           />
         </div>
 
         <div class="form-group">
-          <label for="password_confirmation">Xác nhận mật khẩu *</label>
+          <label for="password_confirmation">Nhập lại mật khẩu</label>
           <input
             id="password_confirmation"
             type="password"
-            v-model="form.password_confirmation"
-            placeholder="Nhập lại mật khẩu mới"
+            v-model="password_confirmation"
+            placeholder="Nhập lại mật khẩu"
             required
-            :disabled="loading"
-            minlength="6"
           />
         </div>
 
-        <button type="submit" :disabled="loading" class="reset-button">
-          <span v-if="loading">Đang đặt lại...</span>
-          <span v-else>Đặt lại mật khẩu</span>
+        <button type="submit" :disabled="loading">
+          {{ loading ? 'Đang xử lý...' : 'Đặt lại mật khẩu' }}
         </button>
       </form>
-
-      <div v-if="successMessage" class="success-message">
-        {{ successMessage }}
-        <div style="margin-top: 15px;">
-          <router-link to="/login" class="login-link-btn">Đăng nhập ngay</router-link>
-        </div>
-      </div>
-
-      <div class="login-link" v-if="!successMessage">
-        <p><router-link to="/login">Quay lại đăng nhập</router-link></p>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, onMounted } from "vue"
+import { useRoute, useRouter } from "vue-router"
+import axios from "axios"
 
-const router = useRouter()
 const route = useRoute()
+const router = useRouter()
 
-const form = ref({
-  email: '',
-  token: '',
-  password: '',
-  password_confirmation: ''
-})
-
+const password = ref("")
+const password_confirmation = ref("")
+const code = ref("")
 const loading = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
-const validationErrors = ref({})
 
 onMounted(() => {
-  // Lấy token và email từ query params
-  form.value.token = route.query.token || ''
-  form.value.email = route.query.email || ''
-  
-  if (!form.value.token || !form.value.email) {
-    errorMessage.value = 'Link không hợp lệ hoặc đã hết hạn'
+  // Lấy code từ query param
+  code.value = route.query.code || ""
+  if (!code.value) {
+    alert("Liên kết đặt lại mật khẩu không hợp lệ!")
+    router.push("/")
   }
 })
 
-const handleResetPassword = async () => {
-  errorMessage.value = ''
-  validationErrors.value = {}
-  loading.value = true
+const submitReset = async () => {
+  // Client-side validation
+  if (password.value.length < 8) {
+    alert("Mật khẩu phải có ít nhất 8 ký tự!")
+    return
+  }
+  if (password.value !== password_confirmation.value) {
+    alert("Mật khẩu và xác nhận mật khẩu không khớp!")
+    return
+  }
 
   try {
-    // Kiểm tra mật khẩu khớp
-    if (form.value.password !== form.value.password_confirmation) {
-      errorMessage.value = 'Mật khẩu xác nhận không khớp'
-      loading.value = false
-      return
-    }
-
-    const response = await fetch('http://localhost:8000/api/auth/reset-password', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        email: form.value.email,
-        token: form.value.token,
-        password: form.value.password,
-        password_confirmation: form.value.password_confirmation
-      }),
+    loading.value = true
+    const response = await axios.post("/reset-password", {
+      code: code.value,
+      password: password.value,
+      password_confirmation: password_confirmation.value,
     })
-
-    const data = await response.json()
-    
-    if (data.success) {
-      successMessage.value = data.message || 'Đặt lại mật khẩu thành công!'
-    } else {
-      if (data.errors) {
-        validationErrors.value = data.errors
-      } else {
-        errorMessage.value = data.message || 'Đặt lại mật khẩu thất bại'
-      }
-    }
-  } catch (error) {
-    errorMessage.value = 'Có lỗi xảy ra khi đặt lại mật khẩu'
-    console.error('Reset password error:', error)
+    alert(response.data.message || "Mật khẩu đã được đặt lại thành công!")
+    router.push("/login")
+  } catch (err) {
+    console.error(err)
+    const msg = err.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại"
+    alert(msg)
   } finally {
     loading.value = false
   }
@@ -153,141 +88,77 @@ const handleResetPassword = async () => {
 </script>
 
 <style scoped>
-.reset-container {
-  min-height: 100vh;
+.reset-password-page {
   display: flex;
-  align-items: center;
   justify-content: center;
-  background: #f0f0f0;
-  padding: 20px;
+  align-items: center;
+  min-height: 100vh;
+  background: #fff;
+  color: #000;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-.reset-box {
-  background: white;
-  padding: 30px;
-  border: 1px solid #ddd;
-  width: 100%;
+.reset-container {
   max-width: 400px;
+  width: 100%;
+  padding: 2rem;
+  border: 2px solid #000;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.reset-box h2 {
-  text-align: center;
-  margin-bottom: 20px;
+.reset-container h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.reset-container p {
+  font-size: 0.9rem;
   color: #333;
-  font-size: 24px;
+  margin-bottom: 1rem;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  color: #333;
+input {
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #000;
+  border-radius: 6px;
+  font-size: 0.9rem;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-  box-sizing: border-box;
-}
-
-.form-group input:focus {
+input:focus {
   outline: none;
-  border-color: #666;
+  border-color: #000;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
 }
 
-.form-group input:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.form-group input[readonly] {
-  background-color: #f5f5f5;
-}
-
-.reset-button {
-  width: 100%;
-  padding: 10px;
-  background: #333;
-  color: white;
+button {
+  padding: 0.6rem 1rem;
+  background: #000;
+  color: #fff;
+  text-transform: uppercase;
+  font-weight: bold;
   border: none;
-  font-size: 16px;
+  border-radius: 6px;
   cursor: pointer;
-  margin-top: 10px;
+  transition: all 0.2s ease;
 }
 
-.reset-button:hover:not(:disabled) {
-  background: #555;
-}
-
-.reset-button:disabled {
-  background: #999;
-  cursor: not-allowed;
-}
-
-.success-message {
-  background-color: #dfd;
-  color: #3a3;
-  padding: 10px;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.error-message {
-  background-color: #fee;
-  color: #c33;
-  padding: 10px;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.validation-errors {
-  background-color: #fee;
-  color: #c33;
-  padding: 10px;
-  margin-bottom: 15px;
-}
-
-.validation-errors ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.validation-errors li {
-  margin-bottom: 5px;
-}
-
-.login-link {
-  margin-top: 15px;
-  text-align: center;
-  color: #666;
-}
-
-.login-link a {
-  color: #0066cc;
-  text-decoration: none;
-}
-
-.login-link a:hover {
-  text-decoration: underline;
-}
-
-.login-link-btn {
-  display: inline-block;
-  padding: 8px 20px;
+button:hover {
   background: #333;
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
 }
 
-.login-link-btn:hover {
-  background: #555;
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
-
-

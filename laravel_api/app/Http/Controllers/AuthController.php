@@ -2,278 +2,267 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\File;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 
 class AuthController extends Controller
 {
     /**
-     * Đăng ký admin mới
-     */
-    public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
-            'full_name' => [
-                'required',
-                'string',
-                'max:255',
-                'regex:/^[a-zA-ZÀ-ỹĂăÂâĐđÊêÔôƠơƯư\s]+$/u', // Chỉ cho phép chữ cái và khoảng trắng
-            ],
-            'phone' => 'required|string|max:20',
-        ], [
-            'full_name.regex' => 'Họ và tên chỉ được chứa chữ cái và khoảng trắng, không được có số hoặc ký tự đặc biệt',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Tạo username từ email (phần trước @)
-        $username = explode('@', $request->email)[0];
-
-        $user = User::create([
-            'username' => $username,
-            'email' => $request->email,
-            'password' => Hash::make($request->password), // Sử dụng Hash::make() với bcrypt (cost factor 10)
-            'full_name' => $request->full_name,
-            'phone' => $request->phone,
-            'role' => 'user', // Chỉ cho phép đăng ký user, admin được cấp tài khoản riêng
-        ]);
-
-        Auth::login($user);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Đăng ký thành công',
-            'user' => [
-                'id' => $user->id,
-                'username' => $user->username,
-                'email' => $user->email,
-                'full_name' => $user->full_name,
-                'role' => $user->role,
-            ]
-        ], 201);
-    }
-
-    /**
-     * Đăng nhập
+     * Login user
      */
     public function login(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|string|email',
+        $request->validate([
+            'email' => 'required|email',
             'password' => 'required|string',
+            'rememberMe' => 'sometimes|boolean', // Thêm trường rememberMe
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Tìm user theo email
         $user = User::where('email', $request->email)->first();
 
-        // Sử dụng Hash::check() để xác thực mật khẩu (so sánh plain text với hash)
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Email hoặc mật khẩu không đúng'
-            ], 401);
+        if (!$user) {
+            return response()->json(['message' => 'Email không tồn tại'], 404);
         }
 
-        Auth::login($user);
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Mật khẩu không đúng'], 401);
+        }
+
+        // --- Tạo token ---
+        $tokenName = 'auth-token';
+        $token = $user->createToken($tokenName)->plainTextToken;
+
+        // --- Nếu rememberMe = true và user không phải admin, lưu remember_token ---
+        if ($request->rememberMe && $user->role !== 'admin') {
+            $user->remember_token = bin2hex(random_bytes(60));
+            $user->save();
+        }
 
         return response()->json([
-            'success' => true,
             'message' => 'Đăng nhập thành công',
-            'user' => [
-                'id' => $user->id,
-                'username' => $user->username,
-                'email' => $user->email,
-                'full_name' => $user->full_name,
-                'role' => $user->role,
-            ]
+            'user' => $user,
+            'token' => $token,
+        ], 200);
+    }
+
+    // Current authenticated user info
+    public function me(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(null, 401);
+        }
+
+        return response()->json([
+            'id' => $user->id,
+            'email' => $user->email,
+            'username' => $user->username,
+            'full_name' => $user->full_name,
+            'avatar' => $this->formatAvatar($user->avatar),
+            'role' => $user->role,
         ]);
     }
 
+    // helper to normalize avatar paths returned by API
+    private function formatAvatar($avatar)
+    {
+        if (! $avatar) return null;
+        $a = (string) $avatar;
+        if (Str::startsWith($a, 'http')) return $a;
+        if (Str::startsWith($a, '/')) return $a;
+        if (Str::startsWith($a, 'public/uploads/')) {
+            return '/' . preg_replace('/^public\//', '', $a);
+        }
+        if (Str::startsWith($a, 'uploads/')) {
+            return '/' . $a;
+        }
+        if (Str::startsWith($a, 'storage/')) {
+            return '/' . $a;
+        }
+        // fallback assume storage disk path
+        return '/storage/' . ltrim($a, '/');
+    }
+
     /**
-     * Đăng xuất
+     * Logout (nếu dùng token)
      */
     public function logout(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $user = $request->user();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Đăng xuất thành công'
-        ]);
+        // 1. Xóa token hiện tại
+        $user->currentAccessToken()->delete();
+
+        // 2. Xóa luôn remember_token trong DB
+        $user->remember_token = null;
+        $user->save();
+
+        return response()->json(['message' => 'Đăng xuất thành công']);
     }
 
-    /**
-     * Lấy thông tin user hiện tại
-     */
-    public function me(Request $request)
+    public function register(Request $request)
     {
-        $user = Auth::user();
+        // Validate dữ liệu
+        $request->validate([
+            'username'  => 'required|string|max:50|unique:users,username',
+            'email'     => [
+                'required',
+                'string',
+                'max:100',
+                'unique:users,email',
+                'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'
+            ],
+            'password'  => ['required', 'confirmed', Password::defaults()],
+            'full_name' => 'nullable|string|max:100',
+            'phone'     => 'nullable|digits:10', // chỉ số, 10 chữ số
+            'address'   => 'nullable|string|max:255',
+            'avatar'    => 'nullable|image|max:2048', // tối đa 2MB
+        ]);
 
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Chưa đăng nhập'
-            ], 401);
+
+        $avatarPath = null;
+
+        if ($request->hasFile('avatar')) {
+            $avatarFile = $request->file('avatar');
+            $filename = $avatarFile->getClientOriginalName();
+            $destination = public_path('uploads/avatar');
+
+            // Tạo folder nếu chưa tồn tại
+            if (!File::exists($destination)) {
+                File::makeDirectory($destination, 0755, true);
+            }
+
+            // Kiểm tra xem đã có file cùng tên chưa
+            if (!File::exists($destination . '/' . $filename)) {
+                // Chưa có -> move file lên
+                $avatarFile->move($destination, $filename);
+            }
+            // Dù file đã tồn tại hay mới upload, lưu đường dẫn relative vào DB
+            $avatarPath = 'uploads/avatar/' . $filename;
         }
 
-        return response()->json([
-            'success' => true,
-            'user' => [
-                'id' => $user->id,
-                'username' => $user->username,
-                'email' => $user->email,
-                'full_name' => $user->full_name,
-                'role' => $user->role,
-            ]
+        // Tạo user mới
+        $user = User::create([
+            'username'  => $request->username,
+            'email'     => $request->email,
+            'password'  => Hash::make($request->password),
+            'full_name' => $request->full_name,
+            'phone'     => $request->phone ? Crypt::encryptString($request->phone) : null,
+            'address'   => $request->address ? Crypt::encryptString($request->address) : null,
+            'avatar'    => $avatarPath,
+            'role'      => 'user', // mặc định role là user
+            'email_verified_at' => now(),
         ]);
+
+        return response()->json([
+            'message' => 'Đăng ký thành công!',
+            'user'    => $user,
+        ], 201);
     }
 
-    /**
-     * Gửi link reset password về email
-     */
+
     public function forgotPassword(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|string|email',
+        $request->validate([
+            'email' => 'required|email'
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         $user = User::where('email', $request->email)->first();
-
         if (!$user) {
-            // Vẫn trả về success để không tiết lộ email có tồn tại hay không
-            return response()->json([
-                'success' => true,
-                'message' => 'Nếu email tồn tại, chúng tôi đã gửi link đặt lại mật khẩu đến email của bạn'
-            ]);
+            return response()->json(['message' => 'Email không tồn tại trong hệ thống'], 404);
         }
 
-        // Tạo token
-        $token = Str::random(64);
-        
-        // Lưu token vào database - Mã hóa token bằng Hash::make() để bảo mật
+        // Tạo token reset mật khẩu
+        $rawToken = Str::random(64);
+
+        // Lưu token thật vào DB
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $request->email],
             [
-                'token' => Hash::make($token), // Hash token để bảo mật
-                'created_at' => now()
+                'token' => $rawToken,
+                'created_at' => Carbon::now()
             ]
         );
 
-        // Gửi email (sẽ log vào storage/logs/laravel.log nếu dùng log driver)
-        $resetUrl = env('FRONTEND_URL', 'http://localhost:5173') . '/reset-password?token=' . $token . '&email=' . urlencode($request->email);
-        
-        // Log để test (trong production sẽ gửi email thật)
-        \Log::info('Password Reset Link for ' . $request->email . ': ' . $resetUrl);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Nếu email tồn tại, chúng tôi đã gửi link đặt lại mật khẩu đến email của bạn'
+        // Mã hóa email + token
+        $data = json_encode([
+            'email' => $request->email,
+            'token' => $rawToken
         ]);
+        $encrypted = Crypt::encryptString($data);
+
+        // Lấy base URL hiện tại (scheme + host + port nếu có)
+        $baseUrl = $request->getSchemeAndHttpHost(); // ví dụ: http://localhost:8000 hoặc https://example.com
+
+        // Tạo link reset đầy đủ
+        $resetLink = $baseUrl . '/reset-password?code=' . urlencode($encrypted);
+
+        // Gửi email
+        Mail::send('reset_password', ['link' => $resetLink], function ($message) use ($request) {
+            $message->to($request->email)
+                    ->subject('Khôi phục mật khẩu - FLORENTIC');
+        });
+
+        return response()->json(['message' => 'Email khôi phục đã được gửi'], 200);
     }
 
-    /**
-     * Đặt lại mật khẩu
-     */
+
     public function resetPassword(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|string|email',
-            'token' => 'required|string',
-            'password' => 'required|string|min:6|confirmed',
+        $request->validate([
+            'code' => 'required',
+            'password' => 'required|min:8'
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
+        try {
+            // Giải mã dữ liệu
+            $decoded = Crypt::decryptString($request->code);
+            $data = json_decode($decoded, true);
+
+            $email = $data['email'];
+            $token = $data['token'];
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Mã đặt lại mật khẩu không hợp lệ'], 400);
         }
 
-        // Tìm token trong database
-        $passwordReset = DB::table('password_reset_tokens')
-            ->where('email', $request->email)
+        // Kiểm tra token trong DB
+        $record = DB::table('password_reset_tokens')
+            ->where('email', $email)
+            ->where('token', $token)
             ->first();
 
-        if (!$passwordReset) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token không hợp lệ hoặc đã hết hạn'
-            ], 400);
+        if (!$record) {
+            return response()->json(['message' => 'Token không tồn tại hoặc đã hết hạn'], 400);
         }
 
-        // Kiểm tra token - Sử dụng Hash::check() để xác thực token
-        if (!Hash::check($request->token, $passwordReset->token)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token không hợp lệ hoặc đã hết hạn'
-            ], 400);
+        // Kiểm tra thời gian: 5 phút = 300 giây
+        $created = Carbon::parse($record->created_at);
+        if (Carbon::now()->diffInSeconds($created) > 300) {
+            // Xóa token cũ
+            DB::table('password_reset_tokens')->where('email', $email)->delete();
+            return response()->json(['message' => 'Link đặt lại mật khẩu đã hết hạn (5 phút)'], 400);
         }
 
-        // Kiểm tra token còn hạn (60 phút)
-        if (now()->diffInMinutes($passwordReset->created_at) > 60) {
-            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
-            return response()->json([
-                'success' => false,
-                'message' => 'Token đã hết hạn. Vui lòng yêu cầu lại'
-            ], 400);
-        }
-
-        // Tìm user
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Email không tồn tại'
-            ], 404);
-        }
-
-        // Cập nhật mật khẩu - Sử dụng Hash::make() để mã hóa mật khẩu mới
-        $user->password = Hash::make($request->password);
-        $user->save();
-
-        // Xóa token đã sử dụng
-        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Đặt lại mật khẩu thành công'
+        // Cập nhật mật khẩu
+        User::where('email', $email)->update([
+            'password' => bcrypt($request->password),
+            'remember_token' => null,
         ]);
-    }
-}
 
+        // Xóa token sau khi đổi mật khẩu
+        DB::table('password_reset_tokens')->where('email', $email)->delete();
+
+        return response()->json(['message' => 'Đặt mật khẩu thành công'], 200);
+    }
+
+}
