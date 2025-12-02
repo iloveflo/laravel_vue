@@ -58,7 +58,7 @@ import size_guide from '../views/help/size_guide.vue'
 import Admin from '../views/admin.vue'
 import QuanLyNguoiDung from '../views/admin/quanlynguoidung.vue'
 import QuanLySanPham from '../views/admin/quanlysanpham.vue'
-import QuanLyGioHang from '../views/admin/quanlygiohang.vue'
+import QuanLyGioHang from '../views/admin/quanlydonhang.vue'
 import ThongKeBaoCao from '../views/admin/thongkebaocao.vue'
 
 const routes = [

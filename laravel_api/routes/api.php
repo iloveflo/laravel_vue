@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Product\ProductController;
+use App\Http\Controllers\Admin\OrderController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
@@ -23,3 +25,14 @@ Route::middleware('auth:sanctum')->prefix('admin/users')->group(function() {
     Route::patch('/{id}/status', [UserController::class,'changeStatus']); // change status
     Route::get('/{id}/orders', [UserController::class,'orders']); // lịch sử đơn hàng
 });
+
+Route::middleware('auth:sanctum')->group(function () {
+    // Route này khớp với Vue: axios.get('/api/orders')
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::get('/orders/{order_code}', [OrderController::class, 'show']);
+    // Route này khớp với Vue: axios.patch('/api/orders/{id}/status')
+    Route::put('/{order_code}/status', [OrderController::class, 'updateStatus']);
+});
+
+Route::get('/products/category/{slug}', [ProductController::class, 'getByCategory']);
+Route::get('/products', [ProductController::class, 'getAll']);
