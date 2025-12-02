@@ -238,19 +238,18 @@ const filters = reactive({
 // 1. Fetch Danh sách đơn hàng
 // Sửa lại hàm fetchOrders để xử lý trường hợp tham số là Event
 const fetchOrders = async (url) => {
-  // Kiểm tra: Nếu url không phải là chuỗi (ví dụ: là Event object do click button) 
-  // hoặc không có giá trị (undefined), thì gán về link mặc định trang 1.
-  if (typeof url !== 'string') {
-    url = '/orders';
-  }
-
+  const token = localStorage.getItem('token'); // token login
   try {
     // Gửi request kèm theo các bộ lọc (filters)
-    const response = await axios.get(url, { params: filters });
+    const response = await axios.get('/admin/orders', {
+      params: filters,
+      headers: {
+        Authorization: token ? `Bearer ${token}` : undefined,
+      },
+    });
     orders.value = response.data;
   } catch (error) {
-    console.error("Lỗi tải đơn hàng:", error);
-    // Có thể thêm thông báo lỗi UI ở đây nếu cần
+    console.error("Lỗi tải đơn hàng:", error.response?.status, error.response?.data);
   }
 };
 
@@ -267,7 +266,7 @@ const fetchAbandonedCarts = async () => {
 // 3. Xử lý Modal & Chi tiết
 const openDetail = async (order) => {
   try {
-    const response = await axios.get(`/orders/${order.order_code}`);
+    const response = await axios.get(`/admin/orders/${order.order_code}`);
     selectedOrder.value = response.data;
     showModal.value = true;
   } catch (error) {
@@ -290,7 +289,7 @@ const updateStatus = async () => {
   try {
     // SỬA: Dùng order_code thay vì id
     // URL sẽ thành: /api/admin/orders/ORD-2023-001/status
-    const url = `/${selectedOrder.value.order_code}/status`;
+    const url = `/admin/${selectedOrder.value.order_code}/status`;
 
     await axios.put(url, {
       order_status: selectedOrder.value.order_status
@@ -510,7 +509,7 @@ const changePage = async (page) => {
       search: filters.value.search
     });
     
-    const response = await axios.get(`/orders?${params}`);
+    const response = await axios.get(`/admin/orders?${params}`);
     orders.value = response.data;
     
     // Scroll lên đầu trang

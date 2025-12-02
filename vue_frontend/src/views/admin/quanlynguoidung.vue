@@ -193,7 +193,6 @@ export default {
 
     const deletedUsers = ref([])   // danh sách user đã xóa
     const showDeleted = ref(false) // toggle giữa active / deleted
-
     const fetchUsers = async () => {
       const res = await axios.get('/admin/users', {
         params: { 
@@ -201,6 +200,9 @@ export default {
           role: filterRole.value,
           status: filterStatus.value,
           page: currentPage.value
+        },
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined
         }
       })
       users.value = res.data
@@ -257,9 +259,14 @@ export default {
       // fallback assume storage disk path
       return backendOrigin + '/storage/' + p
     }
+    
+    const token = localStorage.getItem('token')
 
     const viewUser = async (id) => {
-      const res = await axios.get(`/admin/users/${id}`)
+      const res = await axios.get(`/admin/users/${id}`,{
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined
+        }})
       selectedUser.value = res.data.user
       stats.value = res.data.stats
       previewAvatar.value = avatarPath(selectedUser.value.avatar)

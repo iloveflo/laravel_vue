@@ -30,11 +30,11 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            return response()->json(['message' => 'Email không tồn tại'], 404);
+            return response()->json(['message' => 'Sai thông tin đăng nhập'], 404);
         }
 
         if (!Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Mật khẩu không đúng'], 401);
+            return response()->json(['message' => 'Sai thông tin đăng nhập'], 401);
         }
 
         // --- Tạo token ---
