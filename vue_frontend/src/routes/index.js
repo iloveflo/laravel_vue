@@ -20,6 +20,7 @@ import Orders from '../views/user/orders.vue'
 
 // Products
 import Products from '../views/products/index.vue'
+import ProductDetails from '../views/products/productdetails.vue'
 
 // Áo
 import tshirts from '../views/products/tshirts.vue'
@@ -58,7 +59,7 @@ import size_guide from '../views/help/size_guide.vue'
 import Admin from '../views/admin.vue'
 import QuanLyNguoiDung from '../views/admin/quanlynguoidung.vue'
 import QuanLySanPham from '../views/admin/quanlysanpham.vue'
-import QuanLyGioHang from '../views/admin/quanlydonhang.vue'
+import QuanLyDonHang from '../views/admin/quanlydonhang.vue'
 import ThongKeBaoCao from '../views/admin/thongkebaocao.vue'
 
 const routes = [
@@ -135,6 +136,14 @@ const routes = [
         name: 'products',
         component: Products,
       },
+
+      // Product Details
+      {
+        path: '/product/:slug',
+        name: 'product-details',
+        component: ProductDetails,
+      },
+
       // Áo
       { path: 'products/t-shirts', name: 'tshirts', component: tshirts , meta: { category: 't-shirts', title: 'Áo Thun' } },
       { path: 'products/shirts', name: 'shirts', component: shirts , meta: { category: 'shirts', title: 'Áo Sơ Mi' } },
@@ -177,7 +186,7 @@ const routes = [
     children: [
       { path: 'quan-ly-nguoi-dung', component: QuanLyNguoiDung },
       { path: 'quan-ly-san-pham', component: QuanLySanPham },
-      { path: 'quan-ly-gio-hang', component: QuanLyGioHang },
+      { path: 'quan-ly-don-hang', component: QuanLyDonHang },
       { path: 'thong-ke-bao-cao', component: ThongKeBaoCao },
     ],
   },

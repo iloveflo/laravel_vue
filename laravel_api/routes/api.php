@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Product\ProductController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Product\ProductDetailsController;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
@@ -13,7 +14,7 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->midd
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::middleware('auth:sanctum')->get('/me', [AuthController::class, 'me']);
 
-// Admin users endpoints (protected by sanctum)
+// các router liên quan đến admin
 Route::middleware('auth:sanctum','admin')->prefix('admin')->group(function() {
     // quản lý đơn hàng
     Route::get('/orders', [OrderController::class, 'index']);
@@ -32,5 +33,9 @@ Route::middleware('auth:sanctum','admin')->prefix('admin')->group(function() {
     Route::get('/users/{id}/orders', [UserController::class,'orders']); // lịch sử đơn hàng
 });
 
+//hiển thị sản phẩm
 Route::get('/products/category/{slug}', [ProductController::class, 'getByCategory']);
 Route::get('/products', [ProductController::class, 'getAll']);
+
+//chi tiết sản phẩm
+Route::get('/products/{slug}', [ProductDetailsController::class, 'show']);

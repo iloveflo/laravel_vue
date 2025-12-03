@@ -134,8 +134,9 @@
                     :title="color.color_name"
                   />
                 </div>
-
-                <button class="detail-btn">Xem chi tiết</button>
+                <button class="detail-btn" @click="gotoDetail(product)">
+                  Xem chi tiết
+                </button>
               </div>
             </div>
           </div>
@@ -166,7 +167,10 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 
+
+const router = useRouter();
 const products = ref([]);
 const loading = ref(false);
 const currentPage = ref(1);
@@ -228,6 +232,13 @@ const fetchProducts = async (page, isNewFilter = false) => {
     loading.value = false;
   }
 };
+
+const gotoDetail = (product) => {
+  router.push({
+    name: 'product-details',
+    params: { slug: product.slug },
+  })
+}
 
 // Hàm kiểm tra giá
 const isPriceValid = () => {
