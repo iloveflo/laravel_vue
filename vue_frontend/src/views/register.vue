@@ -76,31 +76,56 @@ async function submitRegister() {
   errors.value = {} // reset lỗi
 
   // ======== Frontend validation =========
+  // 1. Username
   if (!form.value.username) {
-    errors.value.username = 'Username không được để trống'
+    errors.value.username = 'Username không được để trống';
+  } else if (!/^[a-zA-Z0-9_]+$/.test(form.value.username)) {
+    // Dùng else if để chỉ check regex khi username đã có dữ liệu
+    errors.value.username = 'Username chỉ được chứa chữ cái, số hoặc dấu gạch dưới';
   }
 
-  if (!form.value.email || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.value.email)) {
-  errors.value.email = 'Email không hợp lệ'
+  // 2. Email
+  if (!form.value.email) {
+     errors.value.email = 'Email không được để trống';
+  } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(form.value.email)) {
+     errors.value.email = 'Email không đúng định dạng';
   }
 
+  // 3. Password
   if (!form.value.password) {
-    errors.value.password = 'Password không được để trống'
+    errors.value.password = 'Password không được để trống';
   } else if (form.value.password.length < 8) {
-    errors.value.password = 'Password phải có ít nhất 8 ký tự'
+    errors.value.password = 'Password phải có ít nhất 8 ký tự';
   }
 
-  if (form.value.password !== form.value.password_confirmation) {
-    errors.value.password_confirmation = 'Password xác nhận không khớp'
+  // 4. Confirm Password
+  // Chỉ check khi password đã nhập để tránh báo lỗi rác
+  if (form.value.password && form.value.password !== form.value.password_confirmation) {
+    errors.value.password_confirmation = 'Password xác nhận không khớp';
   }
 
+  // 5. Full Name (Quan trọng: Chống XSS từ client)
+  if (!form.value.full_name) {
+    errors.value.full_name = 'Họ tên không được để trống';
+  } else if (!/^[\p{L}\s]+$/u.test(form.value.full_name)) {
+    errors.value.full_name = 'Họ tên không được chứa số hoặc ký tự đặc biệt';
+  }
+
+  // 6. Phone
+  // Logic này OK vì bạn cho phép nullable (có thể rỗng)
+  // Nếu có nhập thì phải đủ 10 số.
   if (form.value.phone && !/^\d{10}$/.test(form.value.phone)) {
-    errors.value.phone = 'Phone phải gồm 10 chữ số'
+    errors.value.phone = 'Phone phải gồm đúng 10 chữ số';
   }
 
   if (Object.keys(errors.value).length > 0) {
-    alert('Có lỗi trong form, kiểm tra lại!')
-    return
+    // Lấy tất cả thông báo lỗi ra thành một mảng
+    const errorMessages = Object.values(errors.value);
+    
+    // Nối chúng lại bằng dấu xuống dòng (\n) và gạch đầu dòng
+    alert('Vui lòng kiểm tra lại các lỗi sau:\n\n- ' + errorMessages.join('\n- '));
+    
+    return;
   }
 
   // ======== Tạo FormData ========

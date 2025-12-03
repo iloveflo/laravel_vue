@@ -113,16 +113,21 @@ class AuthController extends Controller
     {
         // Validate dữ liệu
         $request->validate([
-            'username'  => 'required|string|max:50|unique:users,username',
+            'username'  => 'required|string|max:50|unique:users,username|regex:/^[a-zA-Z0-9_]+$/',
             'email'     => [
                 'required',
                 'string',
+                'email',
                 'max:100',
-                'unique:users,email',
-                'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'
+                'unique:users,email'
             ],
             'password'  => ['required', 'confirmed', Password::defaults()],
-            'full_name' => 'nullable|string|max:100',
+            'full_name' => [
+                'nullable',
+                'string',
+                'max:100',
+                'regex:/^[\p{L}\s]+$/u' // \p{L} là mọi ký tự chữ cái (Unicode), u là hỗ trợ UTF-8
+            ],
             'phone'     => 'nullable|digits:10', // chỉ số, 10 chữ số
             'address'   => 'nullable|string|max:255',
             'avatar'    => 'nullable|image|max:2048', // tối đa 2MB
