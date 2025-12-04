@@ -153,7 +153,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
@@ -166,6 +166,49 @@ const mobileMenuOpen = ref(false)
 
 // 👉 STATE USER
 const user = ref(null)
+
+const cartCount = ref(0);
+
+// Hàm gọi API lấy số lượng
+const fetchCartCount = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const sessionId = localStorage.getItem('cart_session_id');
+
+    // Nếu không có gì thì reset về 0
+    if (!token && !sessionId) {
+      cartCount.value = 0;
+      return;
+    }
+
+    const config = {
+      params: { session_id: sessionId },
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    };
+
+    const response = await axios.get(`/cart`, config);
+    
+    if (response.data && response.data.summary) {
+      cartCount.value = response.data.summary.total_items;
+    }
+  } catch (error) {
+    console.error("Lỗi lấy giỏ hàng:", error);
+  }
+};
+
+// Lifecycle
+onMounted(() => {
+  // 1. Gọi ngay khi Header hiện ra
+  fetchCartCount();
+
+  // 2. Đăng ký lắng nghe sự kiện 'cart-updated' từ bất kỳ đâu phát ra
+  window.addEventListener('cart-updated', fetchCartCount);
+});
+
+onUnmounted(() => {
+  // Dọn dẹp sự kiện khi Header bị hủy (tránh lỗi memory leak)
+  window.removeEventListener('cart-updated', fetchCartCount);
+});
 
 // --- FETCH USER INFO /me ---
 async function fetchUser() {

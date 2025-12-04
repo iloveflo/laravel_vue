@@ -31,8 +31,8 @@
           <h4 class="footer-heading">KHÁM PHÁ</h4>
           <ul class="footer-links">
             <li><router-link to="/products/new-arrivals">New Arrivals</router-link></li>
-            <li><router-link to="/products">Áo</router-link></li>
-            <li><router-link to="/products">Quần</router-link></li>
+            <li><router-link to="/products/ao">Áo</router-link></li>
+            <li><router-link to="/products/quan">Quần</router-link></li>
             <li><router-link to="/products/sale">Sale Off</router-link></li>
           </ul>
         </div>

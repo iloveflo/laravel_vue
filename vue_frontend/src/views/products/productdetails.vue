@@ -80,8 +80,14 @@
         </div>
 
         <!-- Add to Cart -->
-        <button class="add-cart-btn" @click="addToCart">
-          Thêm vào giỏ hàng
+        <button 
+          class="add-cart-btn" 
+          @click="addToCart" 
+          :disabled="isAdding"
+          :class="{ 'disabled-btn': isAdding }"
+        >
+          <span v-if="isAdding">Đang xử lý...</span>
+          <span v-else>Thêm vào giỏ hàng</span>
         </button>
       </div>
     </div>
@@ -122,37 +128,55 @@ const slug = route.params.slug;
 
 const product = ref(null);
 const mainImage = ref("");
-
 const selectedSize = ref("");
 const selectedColor = ref("");
 const quantity = ref(1);
+const isAdding = ref(false); // Trạng thái loading của nút
 
-// Fetch product details
+// --- Helper Functions ---
+
+const formatPrice = (price) =>
+  Number(price).toLocaleString("vi-VN") + "₫";
+
+// Logic lấy session_id cho khách vãng lai
+const getSessionId = () => {
+  let sessionId = localStorage.getItem('cart_session_id');
+  if (!sessionId) {
+    // Tạo session_id ngẫu nhiên nếu chưa có
+    sessionId = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now();
+    localStorage.setItem('cart_session_id', sessionId);
+  }
+  return sessionId;
+};
+
+// --- API Calls ---
+
+// 1. Lấy chi tiết sản phẩm
 onMounted(async () => {
   try {
+    // Lưu ý: Đảm bảo đường dẫn API đúng với router laravel
     const res = await axios.get(`/products/${slug}`);
-    product.value = res.data.product;
+    
+    // Giả sử API trả về { status:..., data: { product: ... } } hoặc trực tiếp product
+    // Tùy vào ProductDetailsController của bạn trả về gì. 
+    // Ở đây tôi giả định res.data.product như code cũ của bạn
+    product.value = res.data.product || res.data; 
 
-    // Set main image
-    mainImage.value =
-      product.value.images?.find((img) => img.is_primary)?.image_path ||
-      product.value.images?.[0]?.image_path ||
-      "/placeholder.jpg";
+    // Set ảnh chính
+    if (product.value) {
+        mainImage.value =
+        product.value.images?.find((img) => img.is_primary)?.image_path ||
+        product.value.images?.[0]?.image_path ||
+        "/placeholder.jpg";
+    }
   } catch (err) {
-    console.error("Lỗi:", err);
+    console.error("Lỗi tải sản phẩm:", err);
   }
 });
 
 const replaceImage = (e) => {
   e.target.src = "https://via.placeholder.com/300x300?text=No+Image";
 };
-
-const formatPrice = (price) =>
-  Number(price).toLocaleString("vi-VN") + "₫";
-
-const isSale = (product) =>
-  product?.sale_price &&
-  parseFloat(product.sale_price) < parseFloat(product.price);
 
 const increaseQty = () => {
   quantity.value++;
@@ -162,23 +186,75 @@ const decreaseQty = () => {
   if (quantity.value > 1) quantity.value--;
 };
 
-const addToCart = () => {
-  if (!selectedSize.value) {
+// 2. Hàm Thêm vào giỏ hàng (QUAN TRỌNG)
+const addToCart = async () => {
+  // Validate
+  if (!product.value) return;
+  
+  // Kiểm tra Size (nếu sản phẩm có size)
+  if (product.value.sizes && product.value.sizes.length > 0 && !selectedSize.value) {
     alert("Vui lòng chọn kích thước!");
     return;
   }
-  if (!selectedColor.value) {
+  
+  // Kiểm tra Màu (nếu sản phẩm có màu)
+  if (product.value.colors && product.value.colors.length > 0 && !selectedColor.value) {
     alert("Vui lòng chọn màu sắc!");
     return;
   }
 
-  alert(
-    `🛒 Đã thêm vào giỏ hàng:
-Sản phẩm: ${product.value.name}
-Size: ${selectedSize.value}
-Màu: ${selectedColor.value}
-Số lượng: ${quantity.value}`
-  );
+  isAdding.value = true;
+
+  try {
+    const token = localStorage.getItem('token'); // Lấy token nếu user đã login
+    const sessionId = getSessionId(); // Lấy session_id (luôn cần cho guest)
+
+    const payload = {
+      product_id: product.value.id,
+      quantity: quantity.value,
+      size: selectedSize.value || null,
+      color: selectedColor.value || null,
+      session_id: sessionId // Gửi kèm session_id
+    };
+
+    // Cấu hình header
+    const config = {
+      headers: {}
+    };
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    // Gọi API
+    const response = await axios.post(`/cart/add`, payload, config);
+
+    // Xử lý thành công
+    if (response.status === 200 || response.status === 201) {
+      alert("✅ Đã thêm sản phẩm vào giỏ hàng!");
+      
+      // Nếu là lần đầu tiên và server trả về session_id mới (tùy logic server), update lại
+      if (response.data.data?.session_id) {
+          localStorage.setItem('cart_session_id', response.data.data.session_id);
+      }
+      
+      // Phát tín hiệu để Header biết mà cập nhật
+      window.dispatchEvent(new Event('cart-updated')); 
+      
+      // Reset lại lựa chọn (nếu muốn)
+      // quantity.value = 1;
+    }
+  } catch (error) {
+    console.error("Lỗi thêm giỏ hàng:", error);
+    
+    // Xử lý thông báo lỗi từ Server trả về
+    if (error.response && error.response.data) {
+        const msg = error.response.data.message || 'Có lỗi xảy ra.';
+        alert(`❌ ${msg}`);
+    } else {
+        alert("❌ Lỗi kết nối đến server.");
+    }
+  } finally {
+    isAdding.value = false;
+  }
 };
 </script>
 

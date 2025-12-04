@@ -23,6 +23,7 @@ import Products from '../views/products/index.vue'
 import ProductDetails from '../views/products/productdetails.vue'
 
 // Áo
+import ao from '../views/products/ao.vue'
 import tshirts from '../views/products/tshirts.vue'
 import shirts from '../views/products/shirts.vue'
 import polo from '../views/products/polo.vue'
@@ -30,6 +31,7 @@ import jackets from '../views/products/jackets.vue'
 import hoodies from '../views/products/hoodies.vue'
 
 // Quần
+import quan from '../views/products/quan.vue'
 import trousers from '../views/products/trousers.vue'
 import jeans from '../views/products/jeans.vue'
 import shorts from '../views/products/shorts.vue'
@@ -145,6 +147,7 @@ const routes = [
       },
 
       // Áo
+      { path : 'products/ao', name: 'ao', component: ao , meta: { category: 'ao', title: 'Áo' } },
       { path: 'products/t-shirts', name: 'tshirts', component: tshirts , meta: { category: 't-shirts', title: 'Áo Thun' } },
       { path: 'products/shirts', name: 'shirts', component: shirts , meta: { category: 'shirts', title: 'Áo Sơ Mi' } },
       { path: 'products/polo', name: 'polo', component: polo , meta: { category: 'polo', title: 'Áo Polo' } },
@@ -152,6 +155,7 @@ const routes = [
       { path: 'products/hoodies', name: 'hoodies', component: hoodies , meta: { category: 'hoodies', title: 'Hoodie & Sweatshirt' } },
       
       // Quần
+      { path : 'products/quan', name: 'quan', component: quan , meta: { category: 'quan', title: 'Quần' } },
       { path: 'products/trousers', name: 'trousers', component: trousers , meta: { category: 'trousers', title: 'Quần Tây' } },
       { path: 'products/jeans', name: 'jeans', component: jeans , meta: { category: 'jeans', title: 'Denim / Jeans' } },
       { path: 'products/shorts', name: 'shorts', component: shorts , meta: { category: 'shorts', title: 'Quần Short' } },
