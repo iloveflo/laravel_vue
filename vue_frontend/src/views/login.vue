@@ -143,7 +143,9 @@ const handleLogin = async () => {
 
 
 <style scoped>
+
 /* --- Layout Chung --- */
+
 .login-page-wrapper {
   display: flex;
   justify-content: center;
@@ -368,4 +370,5 @@ const handleLogin = async () => {
   font-weight: 600;
   text-transform: uppercase;
 }
+
 </style>

@@ -277,7 +277,7 @@ const performSearch = () => {
 }
 
 .header-container {
-  max-width: 1440px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 40px;
   display: flex;
@@ -594,7 +594,11 @@ const performSearch = () => {
 }
 
 /* ----- Responsive ----- */
-@media (max-width: 1024px) {
+@media (max-width: 1025px) {
+
+  .site-header{
+    top: 0;
+  }
   /* Mobile Menu Button */
   .mobile-menu-btn {
     display: flex;
@@ -607,6 +611,10 @@ const performSearch = () => {
     color: #000;
     order: -1;
   }
+
+.top-bar{
+  display: none;
+}
 
   .nav {
     position: fixed;
@@ -627,6 +635,8 @@ const performSearch = () => {
   }
 
   .nav.mobile-open {
+    
+    top:3%;
     max-height: 80vh;
     opacity: 1;
     overflow-y: auto;
@@ -698,9 +708,40 @@ const performSearch = () => {
   }
 }
 
-@media (min-width: 1025px) {
+@media (min-width: 1100px) {
   .mobile-menu-btn {
     display: none;
+  }
+  
+}
+@media (max-width: 870px){
+  .header-actions{
+    gap: 1px;
+  }
+  .search-wrapper{
+    display: none;
+  }
+    .nav.mobile-open {
+    
+    top:8%;
+    max-height: 80vh;
+    opacity: 1;
+    overflow-y: auto;
+  }
+}
+@media (min-width: 10px){
+  .header-actions{
+    gap: 1px;
+  }
+  .search-wrapper{
+    display: none;
+  }
+    .nav.mobile-open {
+    
+    top:3%;
+    max-height: 80vh;
+    opacity: 1;
+    overflow-y: auto;
   }
 }
 </style>

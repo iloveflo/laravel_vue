@@ -109,6 +109,12 @@
   margin: 0;
   padding: 0;
 }
+footer{
+  position: relative;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+}
 
 .site-footer {
   background-color: #000;
@@ -119,10 +125,12 @@
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position:block;
+  bottom: 0;
 }
 
 .footer-container {
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 24px;
 }
