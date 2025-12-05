@@ -34,48 +34,47 @@
               <div class="mega-content">
                 
                 <div class="mega-column">
-                  <h4 class="column-title">Áo</h4>
+                  <h4 class="column-title"><router-link :to="{ name: 'product-category', params: { slug: 'ao' } }">Áo</router-link></h4>
                   <ul class="column-list">
-                    <li><router-link to="/products/t-shirts">Áo Thun (T-Shirts)</router-link></li>
-                    <li><router-link to="/products/shirts">Áo Sơ Mi (Shirts)</router-link></li>
-                    <li><router-link to="/products/polo">Áo Polo</router-link></li>
-                    <li><router-link to="/products/jackets">Áo Khoác / Blazer</router-link></li>
-                    <li><router-link to="/products/hoodies">Hoodie & Sweatshirt</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 't-shirts' } }">Áo Thun (T-Shirts)</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'shirts' } }">Áo Sơ Mi (Shirts)</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'polo' } }">Áo Polo</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'jackets' } }">Áo Khoác / Blazer</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'hoodies' } }">Hoodie & Sweatshirt</router-link></li>
                   </ul>
                 </div>
 
                 <div class="mega-column">
-                  <h4 class="column-title">QUẦN</h4>
+                  <h4 class="column-title"><router-link :to="{ name: 'product-category', params: { slug: 'quan' } }">QUẦN</router-link></h4>
                   <ul class="column-list">
-                    <li><router-link to="/products/trousers">Quần Tây (Trousers)</router-link></li>
-                    <li><router-link to="/products/jeans">Denim / Jeans</router-link></li>
-                    <li><router-link to="/products/shorts">Quần Short</router-link></li>
-                    <li><router-link to="/products/kaki">Quần Kaki</router-link></li>
-                    <li><router-link to="/products/joggers">Quần Jogger</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'trousers' } }">Quần Tây (Trousers)</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'jeans' } }">Denim / Jeans</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'shorts' } }">Quần Short</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'kaki' } }">Quần Kaki</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'joggers' } }">Quần Jogger</router-link></li>
                   </ul>
                 </div>
 
                 <div class="mega-column">
-                  <h4 class="column-title">PHỤ KIỆN</h4>
+                  <h4 class="column-title"><router-link :to="{ name: 'product-category', params: { slug: 'phu-kien' } }">PHỤ KIỆN</router-link></h4>
                   <ul class="column-list">
-                    <li><router-link to="/products/bags">Túi Xách / Balo</router-link></li>
-                    <li><router-link to="/products/hats">Mũ / Nón</router-link></li>
-                    <li><router-link to="/products/belts">Thắt Lưng</router-link></li>
-                    <li><router-link to="/products/wallets">Ví Da</router-link></li>
-                    <li><router-link to="/products/socks">Tất / Vớ</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'bags' } }">Túi Xách / Balo</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'hats' } }">Mũ / Nón</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'belts' } }">Thắt Lưng</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'wallets' } }">Ví Da</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'socks' } }">Tất / Vớ</router-link></li>
                   </ul>
                 </div>
 
                 <div class="mega-column highlight-column">
-                  <h4 class="column-title">BỘ SƯU TẬP</h4>
+                  <h4 class="column-title"><router-link :to="{ name: 'product-category', params: { slug: 'bo-suu-tap' } }">BỘ SƯU TẬP</router-link></h4>
                   <ul class="column-list">
-                    <li><router-link to="/products/new-arrivals">New Arrivals 2025</router-link></li>
-                    <li><router-link to="/products/essentials">The Essentials</router-link></li>
-                    <li><router-link to="/products/monochrome">Monochrome Series</router-link></li>
-                    <li class="mt-4"><router-link to="/products/sale" class="text-sale">VIEW ALL SALE</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'new-arrivals' } }">New Arrivals 2025</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'essentials' } }">The Essentials</router-link></li>
+                    <li><router-link :to="{ name: 'product-category', params: { slug: 'monochrome' } }">Monochrome Series</router-link></li>
+                    <li class="mt-4"><router-link :to="{ name: 'product-category', params: { slug: 'sale' } }" class="text-sale">VIEW ALL SALE</router-link></li>
                   </ul>
                 </div>
-
               </div>
             </div>
           </div>
@@ -425,6 +424,21 @@ const performSearch = () => {
   letter-spacing: 1.5px;
   border-left: 3px solid #000;
   padding-left: 12px;
+}
+
+/* --- THÊM ĐOẠN NÀY --- */
+.column-title a {
+  text-decoration: none; /* Bỏ gạch chân */
+  color: inherit;        /* "inherit" nghĩa là thừa kế màu từ cha (màu đen) */
+  /* Hoặc bạn có thể set cứng: color: #000; */
+  
+  display: block; /* Tùy chọn: Giúp vùng bấm rộng hơn */
+}
+
+/* Tùy chọn: Hiệu ứng khi di chuột vào */
+.column-title a:hover {
+  color: #555; /* Đổi màu xám nhẹ khi hover */
+  /* text-decoration: underline; -> Nếu muốn hiện gạch chân khi hover */
 }
 
 .column-list {

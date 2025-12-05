@@ -9,54 +9,75 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    // API lấy sản phẩm theo category
-    public function getByCategory(Request $request, $slug)
+   public function getByCategory(Request $request, $slug)
     {
-        // Lấy category_id theo slug
-        $category = Category::where('slug', $slug)->first();
+        // 1. Tìm Category và load sẵn relationship children để tối ưu query
+        $category = Category::with('children')->where('slug', $slug)->first();
 
         if (!$category) {
             return response()->json(['message' => 'Category not found'], 404);
         }
 
-        // Query sản phẩm
-        $query = Product::with(['images', 'sizes', 'colors'])
-            ->where('category_id', $category->id)
-            ->where('status', 'active') // hoặc 1 nếu status là int
+        // 2. Xác định danh sách ID (Logic chuẩn: lấy chính nó + con của nó)
+        // Nếu là cha -> lấy ID của nó + ID các con
+        // Nếu là con -> children rỗng -> chỉ lấy ID của nó
+        $targetIds = $category->children->pluck('id')->toArray();
+        $targetIds[] = $category->id; // Luôn thêm chính ID hiện tại vào
+
+        // 3. Query sản phẩm
+        $query = Product::with(['images', 'sizes', 'colors']) // Eager loading
+            ->whereIn('category_id', $targetIds)
+            ->where('status', 'active')
             ->orderBy('created_at', 'desc');
 
-        // Lọc theo khoảng giá
-        if ($request->has('min_price') && $request->min_price !== null) {
-            $query->where('price', '>=', $request->min_price);
+        // --- CÁC BỘ LỌC ---
+        
+        // Lọc giá
+        if ($request->filled('min_price')) {
+            $query->where('price', '>=', (float)$request->min_price);
         }
-        if ($request->has('max_price') && $request->max_price !== null) {
-            $query->where('price', '<=', $request->max_price);
+        
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', (float)$request->max_price);
         }
 
-        // Lọc theo size
-        if ($request->has('sizes') && $request->sizes) {
+        // Lọc Size (Dùng whereHas là đúng)
+        if ($request->filled('sizes')) {
             $sizes = explode(',', $request->sizes);
             $query->whereHas('sizes', function($q) use ($sizes) {
                 $q->whereIn('size', $sizes);
             });
         }
 
-        // Lọc theo màu
-        if ($request->has('colors') && $request->colors) {
+        // Lọc Màu
+        if ($request->filled('colors')) {
             $colors = explode(',', $request->colors);
             $query->whereHas('colors', function($q) use ($colors) {
-                $q->whereIn('color_name', $colors);
+                // Lưu ý: Cần check đúng tên cột trong bảng colors (color_name hay name?)
+                $q->whereIn('color_name', $colors); 
             });
         }
 
-        // Phân trang
-        $products = $query->paginate(12);
+        // 4. Phân trang
+        // Cho phép frontend quyết định số lượng item (mặc định 12)
+        $perPage = $request->input('per_page', 12);
+        $products = $query->paginate($perPage);
 
+        // 5. Trả về response
+        // QUAN TRỌNG: Để khớp với Frontend `data.data`, `data.last_page`
+        // Ta nên merge thông tin category vào custom data của pagination hoặc trả về cấu trúc bọc ngoài.
+        
+        // Cách tốt nhất: Giữ cấu trúc rõ ràng và sửa nhẹ Frontend
         return response()->json([
-            'category' => $category,
+            'category' => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug
+            ],
             'products' => $products
         ]);
     }
+
 
 
     public function getAll(Request $request) 

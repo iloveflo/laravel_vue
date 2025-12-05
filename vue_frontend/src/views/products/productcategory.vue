@@ -74,7 +74,7 @@
         <!-- Products Grid -->
         <main class="main-content">
             <div class="header">
-              <h1>Sản phẩm</h1>
+              <h1>{{ categoryName || 'Sản phẩm' }}</h1>
               <button @click="showFilters = !showFilters" class="toggle-filter-btn">
                 <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -179,19 +179,24 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'; // Thêm computed, bỏ onUnmounted
-import { useRouter } from 'vue-router';
+import { ref, reactive, onMounted, computed, watch } from 'vue'; // 1. Thêm watch
+import { useRouter, useRoute } from 'vue-router'; // 2. Thêm useRoute
 
 const router = useRouter();
+const route = useRoute(); // 3. Khởi tạo route để lấy params
+
 const products = ref([]);
 const loading = ref(false);
 
 // Phân trang
 const currentPage = ref(1);
-const totalPages = ref(0); // Thêm biến tổng số trang
+const totalPages = ref(0);
 const itemsPerPage = 20;
 
 const showFilters = ref(true);
+
+// Biến để hiển thị tên danh mục trên tiêu đề (tùy chọn)
+const categoryName = ref('');
 
 const filters = reactive({
   minPrice: '',
@@ -203,13 +208,11 @@ const filters = reactive({
 const availableSizes = ref(['S', 'M', 'L', 'XL', 'XXL']);
 const availableColors = ref([]);
 
-// --- LOGIC PHÂN TRANG MỚI ---
-
-// Tính toán các trang cần hiển thị (Ví dụ: 1 ... 4 5 6 ... 10)
+// --- LOGIC PHÂN TRANG MỚI (Giữ nguyên) ---
 const visiblePages = computed(() => {
   const total = totalPages.value;
   const current = currentPage.value;
-  const delta = 2; // Số trang hiển thị bên cạnh trang hiện tại
+  const delta = 2;
   const range = [];
   const rangeWithDots = [];
   let l;
@@ -219,7 +222,6 @@ const visiblePages = computed(() => {
       range.push(i);
     }
   }
-
   for (let i of range) {
     if (l) {
       if (i - l === 2) {
@@ -234,59 +236,92 @@ const visiblePages = computed(() => {
   return rangeWithDots;
 });
 
-// Hàm chuyển trang
 const changePage = (page) => {
   if (page >= 1 && page <= totalPages.value && page !== currentPage.value) {
     fetchProducts(page);
   }
 };
-// -----------------------------
 
-// Fetch products
+// --- FETCH PRODUCTS (ĐÃ SỬA) ---
 const fetchProducts = async (page = 1) => {
-  // Nếu đang load thì thôi, trừ khi muốn force reload
   if (loading.value) return;
-
   loading.value = true;
+
   try {
+    // 1. Chuẩn bị tham số
     const params = new URLSearchParams({
       page: page,
       per_page: itemsPerPage
     });
-
+    
+    // Thêm filter
     if (filters.minPrice) params.append('min_price', filters.minPrice);
     if (filters.maxPrice) params.append('max_price', filters.maxPrice);
     if (filters.sizes.length > 0) params.append('sizes', filters.sizes.join(','));
     if (filters.colors.length > 0) params.append('colors', filters.colors.join(','));
-    
-    // Gọi API
-    const response = await fetch(`/api/products?${params.toString()}`);
-    const data = await response.json();
 
-    // CẬP NHẬT DỮ LIỆU (Thay thế hoàn toàn, không nối thêm)
-    products.value = data.data; 
+    // 2. Lấy slug
+    const slug = route.params.slug;
     
-    // Cập nhật thông tin phân trang từ API trả về
-    currentPage.value = data.current_page;
-    totalPages.value = data.last_page; // Lưu ý: API của bạn cần trả về last_page
-
-    // Trích xuất màu (Lưu ý: Chỉ lấy được màu của 20 sản phẩm hiện tại)
-    const colors = new Set();
-    data.data.forEach(product => {
-      product.colors?.forEach(color => {
-        colors.add(JSON.stringify({ name: color.color_name, code: color.color_code }));
-      });
-    });
-    // Chỉ cập nhật màu nếu chưa có (hoặc cập nhật lại tùy logic của bạn)
-    if (availableColors.value.length === 0) {
-        availableColors.value = Array.from(colors).map(c => JSON.parse(c));
+    // Kiểm tra nhanh: Nếu slug bị undefined thì không gọi API để tránh lỗi
+    if (!slug) {
+        console.error("Lỗi: Không tìm thấy slug trên URL");
+        loading.value = false;
+        return;
     }
 
-    // Scroll lên đầu trang cho trải nghiệm tốt hơn
+    // 3. Log đường dẫn ra để kiểm tra (Xem trong Console F12)
+    const apiUrl = `/api/products/category/${slug}?${params.toString()}`;
+    console.log("Đang gọi API:", apiUrl);
+
+    const response = await fetch(apiUrl);
+
+    // 4. Kiểm tra xem Server có trả về lỗi HTML không (Tránh lỗi Unexpected token <)
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") === -1) {
+        // Nếu server trả về HTML, log nội dung ra để biết lỗi gì
+        const text = await response.text();
+        console.error("Lỗi: Server trả về HTML thay vì JSON:", text);
+        throw new Error("Sai đường dẫn API hoặc lỗi Server 404/500");
+    }
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // 5. Gán dữ liệu (Dựa theo JSON bạn vừa gửi)
+    // JSON của bạn: { products: { data: [...], current_page: 1, ... } }
+    
+    if (data.products && data.products.data) {
+        products.value = data.products.data; 
+        currentPage.value = data.products.current_page;
+        totalPages.value = data.products.last_page;
+        
+        // Cập nhật tên danh mục nếu muốn
+        if (data.category) {
+            categoryName.value = data.category.name; 
+        }
+
+        // Xử lý màu sắc
+        const colors = new Set();
+        data.products.data.forEach(product => {
+            product.colors?.forEach(color => {
+                colors.add(JSON.stringify({ name: color.color_name, code: color.color_code }));
+            });
+        });
+        if (availableColors.value.length === 0) {
+            availableColors.value = Array.from(colors).map(c => JSON.parse(c));
+        }
+    } else {
+        products.value = []; // Trường hợp không có dữ liệu
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
   } catch (error) {
-    console.error('Error fetching products:', error);
+    console.error('Chi tiết lỗi fetch:', error);
   } finally {
     loading.value = false;
   }
@@ -299,35 +334,20 @@ const gotoDetail = (product) => {
   })
 }
 
-// Hàm kiểm tra giá
 const isPriceValid = () => {
   const min = Number(filters.minPrice);
   const max = Number(filters.maxPrice);
-
-  if (filters.minPrice && min < 0) {
-    alert('Giá tối thiểu không được âm.');
-    return false;
-  }
-
-  if (filters.minPrice && filters.maxPrice && min > max) {
-    alert('Khoảng giá không hợp lệ: giá từ phải nhỏ hơn hoặc bằng giá đến.');
-    return false;
-  }
-
+  if (filters.minPrice && min < 0) return false;
+  if (filters.minPrice && filters.maxPrice && min > max) return false;
   return true;
 };
 
-// Apply filters
 const applyFilters = () => {
-    if (!isPriceValid()) {
-        return;
-    }
-    // Khi filter, luôn quay về trang 1
+    if (!isPriceValid()) return;
     currentPage.value = 1;
     fetchProducts(1);
 };
 
-// Toggle filter checkbox
 const toggleFilter = (type, value) => {
   if (filters[type].includes(value)) {
     filters[type] = filters[type].filter(item => item !== value);
@@ -336,13 +356,29 @@ const toggleFilter = (type, value) => {
   }
 };
 
-// Format price
 const formatPrice = (price) => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND'
   }).format(price);
 };
+
+// 5. Watcher: Quan trọng để phát hiện thay đổi Route
+// Khi user click từ "Áo thun" sang "Áo sơ mi", component không reload lại
+// mà chỉ update params, nên cần watch để fetch lại dữ liệu.
+watch(
+  () => route.params.slug,
+  (newSlug, oldSlug) => {
+    // Chỉ fetch lại nếu slug thực sự thay đổi và có giá trị
+    if (newSlug !== oldSlug) {
+      // Có thể reset filter nếu muốn khi chuyển danh mục
+      // filters.minPrice = ''; filters.maxPrice = ''; ...
+      
+      currentPage.value = 1; // Reset về trang 1
+      fetchProducts(1);
+    }
+  }
+);
 
 onMounted(() => {
   fetchProducts(1);

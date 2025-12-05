@@ -107,7 +107,7 @@ const contentBlocks = ref([
     title: "BỘ SƯU TẬP: MONOCHROME",
     description: "Sự giao thoa giữa ánh sáng và bóng tối. Những thiết kế đen trắng chủ đạo, tôn vinh hình khối cơ bản và chất liệu cao cấp.",
     linkText: "XEM BỘ SƯU TẬP",
-    linkUrl: "/products/monochrome",
+    linkUrl: "/products/category/monochrome",
     imageSrc: "/images/photo-1558618666-fcd25c85cd64.jpg"
   },
   {
@@ -121,28 +121,28 @@ const contentBlocks = ref([
     title: "NEW ARRIVALS: MÙA HÈ 2025",
     description: "Thoáng mát, phóng khoáng nhưng vẫn giữ sự chỉn chu. Khám phá những items mới nhất vừa cập bến.",
     linkText: "MUA NGAY",
-    linkUrl: "/products/new-arrivals",
+    linkUrl: "/products/category/new-arrivals",
     imageSrc: "/images/photo-1509631179647-0177331693ae.jpg"
   },
   {
     title: "ESSENTIAL BASICS",
     description: "Nền tảng của mọi tủ đồ hoàn hảo. Những item cơ bản được nâng tầm với chất liệu premium và đường cắt tinh tế đến từng chi tiết.",
     linkText: "KHÁM PHÁ BASICS",
-    linkUrl: "/products/essentials",
+    linkUrl: "/products/category/essentials",
     imageSrc: "/images/photo-1489987707025-afc232f7ea0f.jpg"
   },
   {
     title: "OUTERWEAR COLLECTION",
     description: "Lớp áo khoác định hình phong cách. Từ blazer thanh lịch đến overcoat cổ điển, mỗi thiết kế là một statement về sự tinh tế.",
     linkText: "XEM OUTERWEAR",
-    linkUrl: "/products/jackets",
+    linkUrl: "/products/category/jackets",
     imageSrc: "/images/photo-1591047139829-d91aecb6caea.jpg"
   },
   {
     title: "THE TAILORED EDIT",
     description: "Nghệ thuật may đo trong từng đường kim mũi chỉ. Những bộ suit và quần âu được chế tác với sự chính xác tuyệt đối.",
     linkText: "XEM TAILORED",
-    linkUrl: "/products/trousers",
+    linkUrl: "/products/category/trousers",
     imageSrc: "/images/photo-1507003211169-0a1dd7228f2d.jpg"
   },
   {
@@ -156,7 +156,7 @@ const contentBlocks = ref([
     title: "ACCESSORIES",
     description: "Điểm nhấn hoàn thiện phong cách. Từ túi xách tối giản đến phụ kiện tinh tế, mỗi item đều mang DNA của FLORENTIC.",
     linkText: "XEM THÊM",
-    linkUrl: "/products/bags",
+    linkUrl: "/products/category/bags",
     imageSrc: "/images/photo-1553062407-98eeb64c6a62.jpg"
   },
   {

@@ -21,35 +21,7 @@ import Orders from '../views/user/orders.vue'
 // Products
 import Products from '../views/products/index.vue'
 import ProductDetails from '../views/products/productdetails.vue'
-
-// Áo
-import ao from '../views/products/ao.vue'
-import tshirts from '../views/products/tshirts.vue'
-import shirts from '../views/products/shirts.vue'
-import polo from '../views/products/polo.vue'
-import jackets from '../views/products/jackets.vue'
-import hoodies from '../views/products/hoodies.vue'
-
-// Quần
-import quan from '../views/products/quan.vue'
-import trousers from '../views/products/trousers.vue'
-import jeans from '../views/products/jeans.vue'
-import shorts from '../views/products/shorts.vue'
-import kaki from '../views/products/kaki.vue'
-import joggers from '../views/products/joggers.vue'
-
-// Phụ kiện
-import bags from '../views/products/bags.vue'
-import hats from '../views/products/hats.vue'
-import belts from '../views/products/belts.vue'
-import wallets from '../views/products/wallets.vue'
-import socks from '../views/products/socks.vue'
-
-// Bộ sưu tập
-import newarrivals from '../views/products/newarrivals.vue'
-import essentials from '../views/products/essentials.vue'
-import monochrome from '../views/products/monochrome.vue'
-import sale from '../views/products/sale.vue'
+import ProductCategory from '../views/products/productcategory.vue'
 
 
 // Help
@@ -139,41 +111,19 @@ const routes = [
         component: Products,
       },
 
+      // Product Category
+      {
+        path: 'products/category/:slug',
+        name: 'product-category',
+        component: ProductCategory,
+      },
+
       // Product Details
       {
         path: '/product/:slug',
         name: 'product-details',
         component: ProductDetails,
       },
-
-      // Áo
-      { path : 'products/ao', name: 'ao', component: ao , meta: { category: 'ao', title: 'Áo' } },
-      { path: 'products/t-shirts', name: 'tshirts', component: tshirts , meta: { category: 't-shirts', title: 'Áo Thun' } },
-      { path: 'products/shirts', name: 'shirts', component: shirts , meta: { category: 'shirts', title: 'Áo Sơ Mi' } },
-      { path: 'products/polo', name: 'polo', component: polo , meta: { category: 'polo', title: 'Áo Polo' } },
-      { path: 'products/jackets', name: 'jackets', component: jackets , meta: { category: 'jackets', title: 'Áo Khoác / Blazer' } },
-      { path: 'products/hoodies', name: 'hoodies', component: hoodies , meta: { category: 'hoodies', title: 'Hoodie & Sweatshirt' } },
-      
-      // Quần
-      { path : 'products/quan', name: 'quan', component: quan , meta: { category: 'quan', title: 'Quần' } },
-      { path: 'products/trousers', name: 'trousers', component: trousers , meta: { category: 'trousers', title: 'Quần Tây' } },
-      { path: 'products/jeans', name: 'jeans', component: jeans , meta: { category: 'jeans', title: 'Denim / Jeans' } },
-      { path: 'products/shorts', name: 'shorts', component: shorts , meta: { category: 'shorts', title: 'Quần Short' } },
-      { path: 'products/kaki', name: 'kaki', component: kaki , meta: { category: 'kaki', title: 'Quần Kaki' } },
-      { path: 'products/joggers', name: 'joggers', component: joggers , meta: { category: 'joggers', title: 'Quần Jogger' } },
-      
-      // Phụ kiện
-      { path: 'products/bags', name: 'bags', component: bags , meta: { category: 'bags', title: 'Túi Xách / Balo' } },
-      { path: 'products/hats', name: 'hats', component: hats , meta: { category: 'hats', title: 'Mũ / Nón' } },
-      { path: 'products/belts', name: 'belts', component: belts , meta: { category: 'belts', title: 'Thắt Lưng' } },
-      { path: 'products/wallets', name: 'wallets', component: wallets , meta: { category: 'wallets', title: 'Ví Da' } },
-      { path: 'products/socks', name: 'socks', component: socks , meta: { category: 'socks', title: 'Tất / Vớ' } },
-      
-      // Bộ sưu tập
-      { path: 'products/new-arrivals', name: 'new_arrivals', component: newarrivals , meta: { category: 'new-arrivals', title: 'New Arrivals 2025' } },
-      { path: 'products/essentials', name: 'essentials', component: essentials , meta: { category: 'essentials', title: 'The Essentials' } },
-      { path: 'products/monochrome', name: 'monochrome', component: monochrome , meta: { category: 'monochrome', title: 'Monochrome Series' } },
-      { path: 'products/sale', name: 'sale', component: sale , meta: { category: 'sale', title: 'Sale' } },
 
       // Help
       { path: 'help/shipping', name: 'shipping', component: shipping, meta: { title: 'Chính sách vận chuyển' } },
