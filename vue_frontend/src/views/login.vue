@@ -148,6 +148,7 @@ const handleLogin = async () => {
 
 .login-page-wrapper {
   display: flex;
+  margin-top:100px;
   justify-content: center;
   padding: 80px 20px;
   background-color: #fff;

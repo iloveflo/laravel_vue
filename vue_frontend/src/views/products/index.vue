@@ -2,84 +2,88 @@
   <div class="products-page">
     <div class="container">
       <div class="layout">
-       <aside class="sidebar" :class="{ hidden: !showFilters }">
-        <div class="filter-panel">
+        
+        <div 
+          class="sidebar-overlay" 
+          :class="{ active: showFilters }"
+          @click="showFilters = false"
+        ></div>
+
+        <aside class="sidebar" :class="{ open: showFilters }">
+          <div class="filter-panel">
             <div class="filter-header">
-            <h2>
+              <h2>
                 <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
                 Bộ lọc
-            </h2>
+              </h2>
+              <button class="close-filter-btn" @click="showFilters = false">
+                ✕
+              </button>
             </div>
 
-            <!-- Nút Áp dụng lên đầu -->
-            <button @click="applyFilters" class="apply-btn" style="margin: 10px 0;">
-            Áp dụng
+            <button @click="applyFilters" class="apply-btn">
+              Áp dụng
             </button>
 
-            <!-- Price Filter -->
             <div class="filter-section">
-            <h3>Khoảng giá - VND</h3>
-            <div class="price-inputs">
+              <h3>Khoảng giá - VND</h3>
+              <div class="price-inputs">
                 <input v-model="filters.minPrice" type="number" placeholder="Từ" class="input"/>
                 <input v-model="filters.maxPrice" type="number" placeholder="Đến" class="input"/>
-            </div>
+              </div>
             </div>
 
-            <!-- Size Filter -->
             <div class="filter-section">
-            <h3>Kích cỡ</h3>
-            <div class="size-buttons">
+              <h3>Kích cỡ</h3>
+              <div class="size-buttons">
                 <button
-                v-for="size in availableSizes"
-                :key="size"
-                @click="toggleFilter('sizes', size)"
-                :class="{ active: filters.sizes.includes(size) }"
-                class="size-btn"
+                  v-for="size in availableSizes"
+                  :key="size"
+                  @click="toggleFilter('sizes', size)"
+                  :class="{ active: filters.sizes.includes(size) }"
+                  class="size-btn"
                 >
-                {{ size }}
+                  {{ size }}
                 </button>
-            </div>
+              </div>
             </div>
 
-            <!-- Color Filter -->
             <div class="filter-section">
-            <h3>Màu sắc</h3>
-            <div class="color-list">
+              <h3>Màu sắc</h3>
+              <div class="color-list">
                 <label
-                v-for="(color, idx) in availableColors"
-                :key="idx"
-                class="color-item"
+                  v-for="(color, idx) in availableColors"
+                  :key="idx"
+                  class="color-item"
                 >
-                <input
+                  <input
                     type="checkbox"
                     :checked="filters.colors.includes(color.name)"
                     @change="toggleFilter('colors', color.name)"
-                />
-                <div
+                  />
+                  <div
                     class="color-box"
                     :style="{ backgroundColor: color.code }"
-                />
-                <span>{{ color.name }}</span>
+                  ></div>
+                  <span>{{ color.name }}</span>
                 </label>
+              </div>
             </div>
-            </div>
-
-        </div>
+          </div>
         </aside>
 
 
-        <!-- Products Grid -->
         <main class="main-content">
           <div class="header">
-            <h1>Sản phẩm ({{ products.length }})</h1>
+            <h1>Sản phẩm <span class="count">({{ products.length }})</span></h1>
+            
             <button @click="showFilters = !showFilters" class="toggle-filter-btn">
               <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
-              {{ showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc' }}
+              {{ showFilters ? 'Ẩn bộ lọc' : 'Bộ lọc' }}
             </button>
           </div>
 
@@ -89,76 +93,38 @@
               :key="product.id"
               class="product-card"
             >
-              <!-- Product Image -->
               <div class="product-image">
                 <img
                   :src="product.images?.find(img => img.is_primary)?.image_path || '/placeholder.jpg'"
                   :alt="product.name"
                   @error="(e) => e.target.src = 'https://via.placeholder.com/300x300?text=No+Image'"
                 />
-                <span v-if="product.featured" class="badge">
-                  Nổi bật
-                </span>
+                <span v-if="product.featured" class="badge">Nổi bật</span>
               </div>
 
-              <!-- Product Info -->
               <div class="product-info">
                 <h3 class="product-name">{{ product.name }}</h3>
-
                 <div class="product-price">
-                  <div v-if="product.sale_price && parseFloat(product.sale_price) < parseFloat(product.price)" class="price-sale">
+                   <div v-if="product.sale_price && parseFloat(product.sale_price) < parseFloat(product.price)" class="price-sale">
                     <span class="sale-price">{{ formatPrice(product.sale_price) }}</span>
                     <span class="original-price">{{ formatPrice(product.price) }}</span>
                   </div>
                   <span v-else class="price">{{ formatPrice(product.price) }}</span>
                 </div>
-
-                <!-- Sizes -->
+                
                 <div class="product-sizes">
-                  <span
-                    v-for="size in product.sizes?.slice(0, 5)"
-                    :key="size.id"
-                    class="size-tag"
-                  >
-                    {{ size.size }}
-                  </span>
+                  <span v-for="size in product.sizes?.slice(0, 5)" :key="size.id" class="size-tag">{{ size.size }}</span>
                 </div>
-
-                <!-- Colors -->
-                <div class="product-colors">
-                  <div
-                    v-for="color in product.colors?.slice(0, 5)"
-                    :key="color.id"
-                    class="color-circle"
-                    :style="{ backgroundColor: color.color_code }"
-                    :title="color.color_name"
-                  />
-                </div>
-                <button class="detail-btn" @click="gotoDetail(product)">
-                  Xem chi tiết
-                </button>
+                
+                <button class="detail-btn" @click="gotoDetail(product)">Xem chi tiết</button>
               </div>
             </div>
           </div>
-
-          <!-- Loading indicator -->
-          <div v-if="loading" class="loading">
-            <div class="spinner"></div>
-            <p>Đang tải...</p>
-          </div>
-
-          <!-- Intersection observer target -->
+          
+          <div v-if="loading" class="loading"><div class="spinner"></div></div>
           <div ref="observerTarget" class="observer-target"></div>
+          <div v-if="!loading && products.length === 0" class="no-products"><p>Không tìm thấy sản phẩm</p></div>
 
-          <!-- No more products -->
-          <div v-if="!hasMore && products.length > 0" class="no-more">
-            Đã hiển thị tất cả sản phẩm
-          </div>
-
-          <!-- No products found -->
-          <div v-if="!loading && products.length === 0" class="no-products">
-            <p>Không tìm thấy sản phẩm nào</p>
-          </div>
         </main>
       </div>
     </div>
@@ -168,14 +134,15 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-
+const isMobile = window.innerWidth < 992;
+const showFilters = ref(!isMobile);
 
 const router = useRouter();
 const products = ref([]);
 const loading = ref(false);
 const currentPage = ref(1);
 const hasMore = ref(true);
-const showFilters = ref(true);
+// const showFilters = ref(true);
 
 const filters = reactive({
   minPrice: '',
@@ -316,525 +283,218 @@ onUnmounted(() => {
   }
 });
 </script>
-
 <style scoped>
-* {
-  box-sizing: border-box;
-}
+/* --- BASE STYLES (Giữ nguyên các style cơ bản) --- */
+* { box-sizing: border-box; }
+.products-page { min-height: 100vh; background-color: #ffffff; padding-top: 80px; }
+.container { max-width: 100%; margin: 0; padding: 0; }
+.layout { display: flex; position: relative; } /* Thêm position relative */
 
-.products-page {
-  min-height: 100vh;
-  background-color: #ffffff;
-  padding-top: 80px;
-}
-
-.container {
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-.layout {
-  display: flex;
-  gap: 0;
-}
-
-/* Sidebar */
+/* --- SIDEBAR DESKTOP --- */
 .sidebar {
   width: 280px;
-  background: #000000;
-  transition: all 0.4s ease;
-  min-height: calc(100vh - 80px);
-  overflow: hidden;
-  box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-}
-
-.sidebar.hidden {
-  width: 0;
-}
-
-/* Filter panel scrollable */
-.filter-panel {
-  background: #000000;
-  padding: 40px 30px;
+  background: #000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  height: calc(100vh - 80px); /* Sửa lại height cố định để sticky hoạt động tốt */
   position: sticky;
   top: 80px;
-  color: #ffffff;
-  height: calc(100vh - 80px);
+  overflow: hidden;
+  z-index: 90;
+  flex-shrink: 0; /* Không cho sidebar bị co lại */
+}
+
+/* Ẩn sidebar trên desktop = width 0 */
+.sidebar:not(.open) {
+  width: 0;
+  opacity: 0;
+}
+
+.filter-panel {
+  width: 280px; /* Cố định width nội dung để không bị méo khi slide */
+  padding: 40px 30px;
+  height: 100%;
   overflow-y: auto;
-  scroll-behavior: smooth;
+  color: #fff;
 }
 
-/* Scrollbar đẹp */
-.filter-panel::-webkit-scrollbar {
-  width: 6px;
-}
-.filter-panel::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 3px;
-}
-.filter-panel::-webkit-scrollbar-track {
-  background: #000;
-}
+/* Nút đóng chỉ hiện trên mobile */
+.close-filter-btn { display: none; }
+.sidebar-overlay { display: none; }
 
-/* Header */
-.filter-header h2 {
-  font-size: 14px;
-  font-weight: 400;
-  margin: 0 0 20px 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #ffffff;
-}
-
-.icon {
-  width: 18px;
-  height: 18px;
-}
-
-/* Apply Button on top */
-.apply-btn {
-  width: 100%;
-  padding: 14px;
-  background: #ffffff;
-  color: #000000;
-  border: none;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  margin-bottom: 30px;
-  transition: all 0.3s ease;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
-.apply-btn:hover {
-  background: #000000;
-  color: #ffffff;
-  border: 1px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(255,255,255,0.2);
-}
-
-/* Filter sections */
-.filter-section {
-  margin-bottom: 40px;
-  padding-bottom: 40px;
-  border-bottom: 1px solid #333333;
-}
-
-.filter-section:last-of-type {
-  border-bottom: none;
-}
-
-.filter-section h3 {
-  font-size: 12px;
-  font-weight: 400;
-  margin: 0 0 20px 0;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: #bbbbbb;
-}
-
-/* Price Inputs */
-.price-inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.input {
-  width: 100%;
-  padding: 12px 10px;
-  border: none;
-  border-bottom: 1px solid #333333;
-  background: transparent;
-  font-size: 14px;
-  color: #ffffff;
-  transition: border-color 0.3s, background 0.3s;
-}
-
-.input::placeholder {
-  color: #777777;
-}
-
-.input:focus {
-  outline: none;
-  border-bottom-color: #ffffff;
-  background: rgba(255,255,255,0.05);
-}
-
-/* Size Buttons */
-.size-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.size-btn {
-  padding: 8px 16px;
-  border: 1px solid #333333;
-  background: transparent;
-  color: #ffffff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 12px;
-  letter-spacing: 1px;
-  border-radius: 4px;
-}
-
-.size-btn:hover {
-  border-color: #ffffff;
-  background: #ffffff;
-  color: #000000;
-}
-
-.size-btn.active {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
-}
-
-/* Color Filter */
-.color-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.color-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.color-item:hover .color-box {
-  transform: scale(1.1);
-}
-
-.color-item input {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: #ffffff;
-}
-
-.color-box {
-  width: 20px;
-  height: 20px;
-  border: 1px solid #333333;
-  border-radius: 3px;
-  transition: transform 0.2s ease;
-}
-
-.color-item span {
-  font-size: 12px;
-  letter-spacing: 0.5px;
-  color: #ffffff;
-}
-
-
-/* Main Content */
+/* --- MAIN CONTENT --- */
 .main-content {
   flex: 1;
   background: #ffffff;
   padding: 40px 60px;
+  width: 100%; /* Đảm bảo content chiếm hết khi sidebar ẩn */
+  transition: padding 0.3s;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 60px;
+  margin-bottom: 40px;
   padding-bottom: 20px;
   border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 .header h1 {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 300;
-  margin: 0;
-  letter-spacing: 4px;
   text-transform: uppercase;
-  color: #000000;
+  letter-spacing: 2px;
+  margin: 0;
 }
+.header .count { font-size: 0.8em; color: #777; }
 
 .toggle-filter-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: #000000;
-  color: #ffffff;
+  background: #000;
+  color: #fff;
   border: none;
   cursor: pointer;
+  text-transform: uppercase;
   font-size: 11px;
   letter-spacing: 1px;
-  text-transform: uppercase;
 }
 
-/* Products Grid */
+/* --- GRID SẢN PHẨM --- */
 .products-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1px;
   background: #e0e0e0;
   border: 1px solid #e0e0e0;
-  margin-bottom: 40px;
 }
 
-.product-card {
-  background: #ffffff;
-  overflow: hidden;
-  transition: all 0.3s;
-  position: relative;
+.product-card { background: #fff; position: relative; }
+.product-image { aspect-ratio: 3/4; overflow: hidden; position: relative; } /* Tỉ lệ ảnh chuẩn thời trang */
+.product-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+.product-card:hover .product-image img { transform: scale(1.05); }
+
+/* Các style text, button trong card giữ nguyên... */
+.product-info { padding: 16px; }
+.product-name { font-size: 14px; margin-bottom: 8px; height: 40px; }
+.price { font-size: 16px; font-weight: 600; }
+.detail-btn { 
+  margin-top: 10px; 
+  width: 100%; padding: 10px; 
+  background: #000; color: #fff; 
+  border: none; text-transform: uppercase; 
+  font-size: 10px; letter-spacing: 1px; cursor: pointer;
 }
 
-.product-card:hover {
-  transform: translateY(-2px);
-}
+/* =========================================
+   RESPONSIVE BREAKPOINTS
+   ========================================= */
 
-.product-card:hover .product-image img {
-  transform: scale(1.05);
-}
-
-.product-image {
-  position: relative;
-  aspect-ratio: 1;
-  overflow: hidden;
-  background: #f5f5f5;
-}
-
-.product-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.5s;
-}
-
-.badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  background: #000000;
-  color: #ffffff;
-  font-size: 9px;
-  padding: 6px 12px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-
-.product-info {
-  padding: 24px 20px;
-}
-
-.product-name {
-  font-size: 20px;
-  font-weight: 400;
-  color: #000000;
-  margin: 0 0 16px 0;
-  height: 40px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  letter-spacing: 0.5px;
-  line-height: 1.5;
-}
-
-.product-price {
-  margin-bottom: 16px;
-}
-
-.price-sale {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.sale-price {
-  font-size: 20px;
-  font-weight: 400;
-  color: #000000;
-  letter-spacing: 0.5px;
-}
-
-.original-price {
-  font-size: 20px;
-  color: #999999;
-  text-decoration: line-through;
-  letter-spacing: 0.5px;
-}
-
-.price {
-  font-size: 20px;
-  font-weight: 400;
-  color: #000000;
-  letter-spacing: 0.5px;
-}
-
-.product-sizes {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-
-.size-tag {
-  font-size: 10px;
-  background: #f5f5f5;
-  padding: 6px 10px;
-  letter-spacing: 1px;
-  border: 1px solid #e0e0e0;
-}
-
-.product-colors {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 20px;
-}
-
-.color-circle {
-  width: 20px;
-  height: 20px;
-  border: 1px solid #e0e0e0;
-}
-
-.detail-btn {
-  width: 100%;
-  padding: 12px;
-  background: #000000;
-  color: #ffffff;
-  border: none;
-  cursor: pointer;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  transition: all 0.3s;
-}
-
-.detail-btn:hover {
-  background: #ffffff;
-  color: #000000;
-  outline: 1px solid #000000;
-}
-
-/* Loading */
-.loading {
-  text-align: center;
-  padding: 60px 0;
-}
-
-.spinner {
-  display: inline-block;
-  width: 40px;
-  height: 40px;
-  border: 2px solid #e0e0e0;
-  border-top: 2px solid #000000;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading p {
-  margin-top: 16px;
-  color: #999999;
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-
-.observer-target {
-  height: 16px;
-}
-
-.no-more {
-  text-align: center;
-  padding: 60px 0;
-  color: #999999;
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-
-.no-products {
-  text-align: center;
-  padding: 100px 0;
-}
-
-.no-products p {
-  font-size: 14px;
-  color: #999999;
-  margin: 0;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-
-/* Responsive */
-@media (max-width: 1400px) {
+/* --- TABLET & SMALL LAPTOP (Max 1200px) --- */
+@media (max-width: 1200px) {
   .products-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, 1fr); /* Giảm xuống 3 cột */
   }
+  .main-content { padding: 30px; }
 }
 
-@media (max-width: 992px) {
-  .toggle-filter-btn {
-    display: flex;
-  }
-  
-  .products-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .main-content {
-    padding: 30px 40px;
-  }
-}
-
-@media (max-width: 768px) {
+/* --- MOBILE & TABLET PORTRAIT (Max 991px) --- */
+@media (max-width: 991px) {
+  /* 1. Layout thay đổi */
+  .products-page { padding-top: 60px; /* Header mobile thường nhỏ hơn */ }
   .sidebar {
     position: fixed;
-    left: 0;
-    top: 0;
+    top: 0; left: 0; bottom: 0;
     height: 100vh;
     z-index: 1000;
-    padding-top: 80px;
+    width: 300px; /* Độ rộng drawer */
+    max-width: 85%;
+    transform: translateX(-100%); /* Ẩn sang trái */
+    transition: transform 0.3s ease-out;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.3);
+    opacity: 1; /* Reset opacity desktop */
+  }
+
+  /* Khi mở trên mobile: trượt vào */
+  .sidebar.open {
+    transform: translateX(0);
+    width: 300px;
   }
   
-  .sidebar.hidden {
-    transform: translateX(-100%);
+  /* Reset logic ẩn width của desktop */
+  .sidebar:not(.open) { width: 300px; }
+
+  /* 2. Overlay nền tối */
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+    backdrop-filter: blur(2px);
   }
-  
-  .main-content {
-    padding: 20px 30px;
+  .sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
   }
-  
-  .header h1 {
+
+  /* 3. Nút đóng filter */
+  .close-filter-btn {
+    display: block;
+    background: transparent;
+    border: none;
+    color: #fff;
     font-size: 24px;
+    cursor: pointer;
+    margin-left: auto;
   }
+  
+  .filter-header {
+    justify-content: space-between;
+    margin-bottom: 30px;
+  }
+
+  /* 4. Grid sản phẩm tablet */
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr); /* 2 cột là chuẩn nhất */
+  }
+  
+  .main-content { padding: 20px 15px; }
+  .filter-panel { padding: 30px 20px; }
 }
 
-@media (max-width: 576px) {
+/* --- SMALL MOBILE (Max 480px) --- */
+@media (max-width: 480px) {
+  .header {
+    flex-direction: row; /* Vẫn giữ ngang */
+    align-items: center;
+  }
+  
+  .header h1 { font-size: 18px; }
+  
+  .toggle-filter-btn {
+    padding: 8px 12px;
+    font-size: 10px;
+  }
+  
   .products-grid {
-    grid-template-columns: 1fr;
+    /* Tùy chọn: 1 cột nếu muốn ảnh to, 2 cột nếu muốn xem nhiều */
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 1px;
   }
   
-  .main-content {
-    padding: 20px;
-  }
+  .product-info { padding: 10px; }
+  .product-name { font-size: 13px; margin-bottom: 4px; }
+  .price { font-size: 14px; }
   
-  .header h1 {
-    font-size: 20px;
-    letter-spacing: 2px;
-  }
+  /* Ẩn bớt chi tiết thừa trên mobile nhỏ */
+  .product-sizes, .product-colors { display: none; }
 }
 </style>

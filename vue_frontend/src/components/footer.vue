@@ -115,7 +115,15 @@ footer{
   bottom: 0;
   width: 100%;
 }
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Chiều cao tối thiểu bằng 100% chiều cao màn hình */
+}
 
+.main-content {
+  flex: 1; /* Phần này sẽ tự động giãn ra để chiếm hết khoảng trống, đẩy footer xuống */
+}
 .site-footer {
   background-color: #000;
   color: #fff;
@@ -125,7 +133,7 @@ footer{
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  position:block;
+  position:relative;
   bottom: 0;
 }
 
