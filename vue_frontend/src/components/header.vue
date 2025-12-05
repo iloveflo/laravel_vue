@@ -708,7 +708,7 @@ const performSearch = () => {
   }
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1025px) {
   .mobile-menu-btn {
     display: none;
   }

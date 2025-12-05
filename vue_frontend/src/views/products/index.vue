@@ -396,14 +396,19 @@ onUnmounted(() => {
 
 /* --- TABLET & SMALL LAPTOP (Max 1200px) --- */
 @media (max-width: 1200px) {
+  /* body{
+    margin-top: 200vh;
+  } */
   .products-grid {
     grid-template-columns: repeat(3, 1fr); /* Giảm xuống 3 cột */
   }
   .main-content { padding: 30px; }
 }
 
+
 /* --- MOBILE & TABLET PORTRAIT (Max 991px) --- */
-@media (max-width: 991px) {
+@media (max-width: 900px) {
+  
   /* 1. Layout thay đổi */
   .products-page { padding-top: 60px; /* Header mobile thường nhỏ hơn */ }
   .sidebar {
@@ -418,7 +423,8 @@ onUnmounted(() => {
     box-shadow: 5px 0 15px rgba(0,0,0,0.3);
     opacity: 1; /* Reset opacity desktop */
   }
-
+  
+.main-content { padding: 50px; }
   /* Khi mở trên mobile: trượt vào */
   .sidebar.open {
     transform: translateX(0);
@@ -466,7 +472,7 @@ onUnmounted(() => {
     grid-template-columns: repeat(2, 1fr); /* 2 cột là chuẩn nhất */
   }
   
-  .main-content { padding: 20px 15px; }
+  /* .main-content { padding: 20px 15px; } */
   .filter-panel { padding: 30px 20px; }
 }
 
@@ -476,7 +482,7 @@ onUnmounted(() => {
     flex-direction: row; /* Vẫn giữ ngang */
     align-items: center;
   }
-  
+  .main-content { padding: 80px; }
   .header h1 { font-size: 18px; }
   
   .toggle-filter-btn {
