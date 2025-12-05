@@ -13,10 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Gán middleware cho prefix 'admin'
-        $middleware->group('admin', [
-            \App\Http\Middleware\AdminMiddleware::class,
-        ]);
+        //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

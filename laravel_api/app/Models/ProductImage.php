@@ -29,7 +29,6 @@ class ProductImage extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'is_primary' => 'boolean',
-        'deleted_at' => 'datetime',
     ];
 
     /**

@@ -6,7 +6,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/',
+  base: './',
   plugins: [
     vue(),
     vueDevTools(),
@@ -17,18 +17,12 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'frontend', // Thư mục output khi build
+    outDir: 'dist', // Thư mục output khi build
   },
   
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000', // địa chỉ Laravel
-        changeOrigin: true,
-        secure: false,
-      },
-            
-      '/uploads': {
         target: 'http://localhost:8000', // địa chỉ Laravel
         changeOrigin: true,
         secure: false,
