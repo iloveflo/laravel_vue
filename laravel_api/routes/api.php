@@ -7,6 +7,7 @@ use App\Http\Controllers\Product\ProductController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Product\ProductDetailsController;
 use App\Http\Controllers\User\CartController;
+use App\Http\Controllers\User\CheckoutController;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
@@ -51,3 +52,7 @@ Route::prefix('cart')->group(function() {
     // Lưu ý: Cần gửi kèm session_id trong body hoặc query param nếu là khách vãng lai
     Route::delete('/remove/{id}', [CartController::class, 'remove']);
 });
+
+//route đặt hàng
+Route::get('/checkout/info', [CheckoutController::class, 'getCheckoutInfo']);
+//Route::post('/checkout/process', [CheckoutController::class, 'processCheckout']);

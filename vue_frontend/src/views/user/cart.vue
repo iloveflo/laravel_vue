@@ -74,8 +74,55 @@
           <span class="total-price">{{ formatCurrency(summary.total_price) }}</span>
         </div>
         <div class="actions">
-          <button class="btn-checkout">Đặt hàng</button>
-        </div>
+            <button class="btn-checkout" @click="handleCheckoutClick">Đặt hàng</button>
+          </div>
+
+          <div v-if="showCheckoutForm" class="checkout-modal">
+            <div class="checkout-content">
+              <h3>Thông tin giao hàng</h3>
+              
+              <form @submit.prevent="submitOrder">
+                <div class="form-group">
+                  <label>Họ tên:</label>
+                  <input v-model="form.full_name" type="text" required placeholder="Nhập họ tên">
+                </div>
+
+                <div class="form-group">
+                  <label>Email:</label>
+                  <input v-model="form.email" type="email" required placeholder="Nhập email">
+                </div>
+
+                <div class="form-group">
+                  <label>Số điện thoại:</label>
+                  <input v-model="form.phone" type="text" required placeholder="Nhập số điện thoại">
+                </div>
+
+                <div class="form-group">
+                  <label>Địa chỉ nhận hàng:</label>
+                  <textarea v-model="form.address" required placeholder="Nhập địa chỉ chi tiết"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label>Mã khuyến mại (nếu có):</label>
+                  <input v-model="form.coupon_code" type="text" placeholder="Mã giảm giá">
+                </div>
+
+                <div class="form-group">
+                  <label>Phương thức thanh toán:</label>
+                  <select v-model="form.payment_method">
+                    <option value="cod">Thanh toán khi nhận hàng (COD)</option>
+                    <option value="banking">Chuyển khoản ngân hàng</option>
+                    <option value="vnpay">VNPAY</option>
+                  </select>
+                </div>
+
+                <div class="form-actions">
+                  <button type="button" @click="showCheckoutForm = false">Hủy</button>
+                  <button type="submit" class="btn-confirm">Xác nhận thanh toán</button>
+                </div>
+              </form>
+            </div>
+          </div>
       </div>
     </div>
   </div>
@@ -85,59 +132,70 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
-// --- State ---
+// --- STATE: Giỏ hàng ---
 const cartItems = ref([]);
 const summary = ref({ total_items: 0, total_price: 0 });
 const loading = ref(true);
-const isRemoving = ref(null); // Để tracking item nào đang bị xóa để hiện loading
+const isRemoving = ref(null);
 
+// --- STATE: Checkout (Khớp với HTML của bạn) ---
+const showCheckoutForm = ref(false); // Biến bật/tắt modal
+const isProcessing = ref(false); // Trạng thái loading khi submit
+const form = ref({
+  full_name: '',
+  email: '',
+  phone: '',
+  address: '',
+  coupon_code: '',
+  payment_method: 'cod'
+});
 
-// --- Helper Functions ---
+// --- HELPER FUNCTIONS ---
 
-// 1. Hàm format tiền tệ (VND)
+// 1. Format tiền tệ
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
-// 2. Hàm lấy hoặc tạo Session ID cho khách vãng lai
+// 2. Lấy Session ID (cho khách)
 const getSessionId = () => {
   let sessionId = localStorage.getItem('cart_session_id');
   if (!sessionId) {
-    // Nếu chưa có, tạo chuỗi ngẫu nhiên đơn giản (hoặc dùng thư viện uuid)
     sessionId = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now();
     localStorage.setItem('cart_session_id', sessionId);
   }
   return sessionId;
 };
 
-// 3. Hàm lấy Token (nếu user đã login)
+// 3. Lấy Token (nếu đã login)
 const getAuthToken = () => {
-  return localStorage.getItem('token'); // Giả sử bạn lưu token ở đây khi login
+  return localStorage.getItem('token'); 
 };
 
-// --- API Calls ---
+// 4. Tạo Header Auth
+const getHeaders = () => {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// --- API FUNCTIONS ---
 
 // 1. Lấy danh sách giỏ hàng
 const fetchCart = async () => {
   loading.value = true;
   try {
-    const token = getAuthToken();
-    const sessionId = getSessionId();
-
     const config = {
-      params: { session_id: sessionId }, // Luôn gửi session_id để backend xử lý fallback
-      headers: {}
+      params: { session_id: getSessionId() },
+      headers: getHeaders()
     };
-
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await axios.get(`/cart`, config);
-
-    if (response.data.status === 'success') {
-      cartItems.value = response.data.data;
-      summary.value = response.data.summary;
+    
+    // Gọi API lấy giỏ hàng
+    const response = await axios.get('/cart', config);
+    
+    // Gán dữ liệu (tuỳ chỉnh theo response thực tế của bạn)
+    if (response.data) {
+        cartItems.value = response.data.data || []; 
+        summary.value = response.data.summary || { total_items: 0, total_price: 0 };
     }
   } catch (error) {
     console.error("Lỗi tải giỏ hàng:", error);
@@ -149,34 +207,93 @@ const fetchCart = async () => {
 // 2. Xóa sản phẩm
 const removeItem = async (cartId) => {
   if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
-
-  isRemoving.value = cartId; // Bật loading cho nút xóa
+  isRemoving.value = cartId;
   try {
-    const token = getAuthToken();
-    const sessionId = getSessionId();
-
-    // Đối với method DELETE, axios nhận params qua option 'params' hoặc 'data'
-    // Nhưng query params là an toàn nhất cho API chúng ta vừa viết
     const config = {
-      params: { session_id: sessionId },
-      headers: {}
+      params: { session_id: getSessionId() },
+      headers: getHeaders()
     };
-
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-
     await axios.delete(`/cart/remove/${cartId}`, config);
-
-    // Xóa thành công thì tải lại giỏ hàng để cập nhật tổng tiền
-    await fetchCart();
-    // Phát tín hiệu để Header biết mà cập nhật
-    window.dispatchEvent(new Event('cart-updated')); 
+    await fetchCart(); // Load lại giỏ
+    window.dispatchEvent(new Event('cart-updated')); // Update header cart count
   } catch (error) {
-    console.error("Lỗi xóa sản phẩm:", error);
-    alert('Không thể xóa sản phẩm. Vui lòng thử lại.');
+    console.error("Lỗi xóa:", error);
   } finally {
     isRemoving.value = null;
+  }
+};
+
+// --- LOGIC CHECKOUT (Khớp với HTML của bạn) ---
+
+// 3. Click nút "Đặt hàng" -> Hiện form & Load info
+const handleCheckoutClick = async () => {
+  // Reset form về mặc định
+  form.value = {
+    full_name: '', email: '', phone: '', address: '', 
+    coupon_code: '', payment_method: 'cod'
+  };
+
+  try {
+    // Gọi API check info user
+    const response = await axios.get('/checkout/info', { headers: getHeaders() });
+    const data = response.data;
+
+    // Nếu user đã login, fill data vào form
+    if (data.is_logged_in && data.customer_info) {
+      form.value.full_name = data.customer_info.full_name || '';
+      form.value.email = data.customer_info.email || '';
+      form.value.phone = data.customer_info.phone || '';
+      form.value.address = data.customer_info.address || '';
+    }
+
+    // Hiện Modal
+    showCheckoutForm.value = true;
+
+  } catch (error) {
+    console.error("Lỗi lấy thông tin user:", error);
+    // Vẫn hiện form trắng nếu lỗi mạng
+    showCheckoutForm.value = true;
+  }
+};
+
+// 4. Submit form "Xác nhận thanh toán"
+const submitOrder = async () => {
+  if (cartItems.value.length === 0) {
+    alert('Giỏ hàng trống!');
+    return;
+  }
+
+  isProcessing.value = true;
+  try {
+    // Payload gửi đi (kèm session_id cho trường hợp guest)
+    const payload = {
+      ...form.value,
+      session_id: getSessionId()
+    };
+
+    const response = await axios.post('/checkout/process', payload, { headers: getHeaders() });
+
+    if (response.data.success) {
+      alert('Đặt hàng thành công!');
+      showCheckoutForm.value = false; // Đóng modal
+      
+      // Reset giỏ hàng client
+      cartItems.value = [];
+      summary.value = { total_items: 0, total_price: 0 };
+      window.dispatchEvent(new Event('cart-updated'));
+      
+      // Có thể redirect: window.location.href = '/account/orders';
+    }
+  } catch (error) {
+    console.error("Lỗi đặt hàng:", error);
+    if (error.response && error.response.data.errors) {
+       // Nếu Laravel trả về lỗi validate chi tiết
+       alert('Vui lòng kiểm tra lại thông tin nhập vào.');
+    } else {
+       alert('Có lỗi xảy ra, vui lòng thử lại sau.');
+    }
+  } finally {
+    isProcessing.value = false;
   }
 };
 
@@ -391,6 +508,141 @@ h2 {
   background-color: #333; /* Hover sáng hơn 1 chút */
 }
 
+/* 1. Lớp phủ mờ (Overlay) */
+.checkout-modal {
+  position: fixed; /* Cố định vị trí so với cửa sổ trình duyệt */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Màu đen mờ 50% */
+  display: flex;
+  justify-content: center; /* Căn giữa ngang */
+  align-items: center;     /* Căn giữa dọc */
+  z-index: 9999;           /* Đảm bảo luôn nổi lên trên cùng (trên Header/Cart) */
+  animation: fadeIn 0.3s ease-in-out; /* Hiệu ứng hiện dần */
+}
+
+/* 2. Hộp chứa nội dung form */
+.checkout-content {
+  background-color: #fff;
+  width: 600px;
+  max-width: 90%; /* Để không bị tràn màn hình trên mobile */
+  max-height: 90vh; /* Chiều cao tối đa 90% màn hình */
+  overflow-y: auto; /* Nếu form dài quá thì hiện thanh cuộn */
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); /* Đổ bóng tạo chiều sâu */
+  position: relative;
+}
+
+/* Tiêu đề form */
+.checkout-content h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 25px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+}
+
+/* 3. Các trường nhập liệu */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+/* Input, Textarea, Select */
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-family: inherit; /* Kế thừa font hệ thống */
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+  transition: border-color 0.2s, background-color 0.2s;
+  box-sizing: border-box; /* Đảm bảo padding không làm vỡ layout */
+}
+
+.form-group textarea {
+  resize: vertical; /* Chỉ cho phép kéo giãn chiều dọc */
+  min-height: 80px;
+}
+
+/* Hiệu ứng khi click vào ô nhập */
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #000; /* Viền đen khi focus */
+  background-color: #fff;
+}
+
+/* 4. Nút bấm (Hủy & Xác nhận) */
+.form-actions {
+  display: flex;
+  justify-content: flex-end; /* Đẩy nút sang phải */
+  gap: 15px; /* Khoảng cách giữa 2 nút */
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+/* Nút Hủy */
+.form-actions button[type="button"] {
+  padding: 12px 24px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  color: #555;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.form-actions button[type="button"]:hover {
+  background-color: #f1f1f1;
+  color: #000;
+}
+
+/* Nút Xác nhận (Style giống nút Checkout ở ngoài) */
+.btn-confirm {
+  padding: 12px 30px;
+  background-color: #000;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-confirm:hover {
+  opacity: 0.8;
+}
+
+.btn-confirm:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* 5. Animation (Tùy chọn) */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 /* --- RESPONSIVE MOBILE --- */
 @media (max-width: 768px) {
   .cart-container {
@@ -435,6 +687,22 @@ h2 {
     background: transparent;
     padding: 0;
     margin-top: 20px;
+  }
+}
+
+/* --- RESPONSIVE CHO MODAL --- */
+@media (max-width: 500px) {
+  .checkout-content {
+    padding: 20px;
+    width: 95%;
+  }
+  
+  .form-actions {
+    flex-direction: column-reverse; /* Nút xác nhận lên trên, hủy xuống dưới trên mobile */
+  }
+  
+  .form-actions button {
+    width: 100%;
   }
 }
 </style>

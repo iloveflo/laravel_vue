@@ -59,15 +59,11 @@ class ProductController extends Controller
         }
 
         // 4. Phân trang
-        // Cho phép frontend quyết định số lượng item (mặc định 12)
-        $perPage = $request->input('per_page', 12);
+        $perPage = $request->input('per_page', 12); // Mặc định 20
+        if ($perPage > 20) $perPage = 12; // Nếu xin > 12 thì ép về 20
         $products = $query->paginate($perPage);
 
         // 5. Trả về response
-        // QUAN TRỌNG: Để khớp với Frontend `data.data`, `data.last_page`
-        // Ta nên merge thông tin category vào custom data của pagination hoặc trả về cấu trúc bọc ngoài.
-        
-        // Cách tốt nhất: Giữ cấu trúc rõ ràng và sửa nhẹ Frontend
         return response()->json([
             'category' => [
                 'id' => $category->id,
@@ -111,7 +107,7 @@ class ProductController extends Controller
         }
 
         // Phân trang
-        $products = $query->paginate(20);
+        $products = $query->paginate(12);
 
         return response()->json($products);
     }

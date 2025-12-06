@@ -285,43 +285,48 @@ const performSearch = () => {
 
 <style scoped>
 .header-wrapper {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 /* ----- Top Bar ----- */
 .top-bar {
   background-color: #000;
   color: #fff;
-  font-size: 15px;
+  font-size: 13px; /* Giảm nhẹ size trên mobile cho đỡ chật */
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   text-align: center;
-  padding: 8px 0;
+  padding: 8px 10px;
   font-weight: 600;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1001;
+  height: 32px; /* Set cứng chiều cao để tính toán header */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ----- Header - FIXED WHEN SCROLL ----- */
+/* ----- Header - FIXED ----- */
 .site-header {
   background-color: #fff;
-  border-bottom: 1px solid #000; 
+  border-bottom: 1px solid #000;
   position: fixed;
-  top: 32px; /* Cách top-bar */
+  top: 32px; /* Bằng chiều cao top-bar */
   left: 0;
   right: 0;
   z-index: 1000;
-  height: 80px;
+  height: 70px; /* Giảm nhẹ chiều cao header cho gọn */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: top 0.3s;
 }
 
 .header-container {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 0 40px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -331,14 +336,15 @@ const performSearch = () => {
 /* ----- Logo ----- */
 .logo {
   font-weight: 800;
-  font-size: 24px;
+  font-size: 20px; /* Resize cho phù hợp */
   color: #000;
   text-decoration: none;
-  letter-spacing: 4px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   border: 2px solid #000;
   padding: 5px 10px;
   transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 .logo:hover {
@@ -346,11 +352,11 @@ const performSearch = () => {
   color: #fff;
 }
 
-/* ----- Navigation Menu ----- */
+/* ----- Navigation Menu (Desktop Base) ----- */
 .nav {
   display: flex;
   align-items: center;
-  gap: 40px;
+  gap: 30px;
 }
 
 .nav-link {
@@ -361,9 +367,11 @@ const performSearch = () => {
   text-transform: uppercase;
   letter-spacing: 1px;
   position: relative;
-  padding: 28px 0;
+  padding: 24px 0; /* Padding khớp với height header mới */
   cursor: pointer;
   transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
 }
 
 .nav-link::after {
@@ -371,7 +379,7 @@ const performSearch = () => {
   position: absolute;
   width: 0;
   height: 2px;
-  bottom: 20px;
+  bottom: 15px;
   left: 0;
   background-color: #000;
   transition: width 0.3s ease;
@@ -383,14 +391,14 @@ const performSearch = () => {
 
 /* ----- Mega Menu ----- */
 .mega-parent {
-  position: static;
+  position: static; /* Quan trọng để mega menu full width */
 }
 
 .mega-menu {
   opacity: 0;
   visibility: hidden;
   position: absolute;
-  top: 100%;
+  top: 100%; /* Ngay dưới header */
   left: 0;
   width: 100%;
   background-color: #fff;
@@ -398,6 +406,7 @@ const performSearch = () => {
   z-index: 99;
   transition: all 0.3s ease;
   transform: translateY(10px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
 .mega-parent:hover .mega-menu {
@@ -409,36 +418,27 @@ const performSearch = () => {
 .mega-content {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 40px 40px 60px 40px;
+  padding: 40px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 40px;
+  gap: 30px;
 }
 
 .column-title {
   font-size: 14px;
   font-weight: 800;
   color: #000;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   border-left: 3px solid #000;
-  padding-left: 12px;
+  padding-left: 10px;
 }
 
-/* --- THÊM ĐOẠN NÀY --- */
 .column-title a {
-  text-decoration: none; /* Bỏ gạch chân */
-  color: inherit;        /* "inherit" nghĩa là thừa kế màu từ cha (màu đen) */
-  /* Hoặc bạn có thể set cứng: color: #000; */
-  
-  display: block; /* Tùy chọn: Giúp vùng bấm rộng hơn */
-}
-
-/* Tùy chọn: Hiệu ứng khi di chuột vào */
-.column-title a:hover {
-  color: #555; /* Đổi màu xám nhẹ khi hover */
-  /* text-decoration: underline; -> Nếu muốn hiện gạch chân khi hover */
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }
 
 .column-list {
@@ -448,28 +448,24 @@ const performSearch = () => {
 }
 
 .column-list li {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .column-list a {
   text-decoration: none;
-  color: #555;
+  color: #666;
   font-size: 13px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  transition: color 0.2s, padding-left 0.2s;
+  transition: all 0.2s;
   display: block;
+  padding: 2px 0;
 }
 
 .column-list a:hover {
   color: #000;
-  font-weight: 700;
   padding-left: 5px;
-}
-
-.mt-4 {
-  margin-top: 24px;
 }
 
 .text-sale {
@@ -483,275 +479,219 @@ const performSearch = () => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 15px;
 }
 
 .icon-btn {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 5px;
   color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  transition: transform 0.2s, background 0.2s;
-  border-radius: 4px;
+  transition: transform 0.2s;
 }
 
 .icon-btn:hover {
-  background-color: #f5f5f5;
-  transform: scale(1.05);
+  transform: scale(1.1);
 }
 
-/* ----- Search Box ----- */
-.search-wrapper {
-  position: relative;
-}
-
-.search-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 12px;
-  background: #fff;
-  border: 2px solid #000;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 300px;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-10px);
-  transition: all 0.3s ease;
-}
-
-.search-dropdown.active {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-.search-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  padding: 8px 12px;
-  font-size: 14px;
-  background: #f5f5f5;
-}
-
-.search-btn {
-  background: #000;
-  color: #fff;
-  border: none;
-  padding: 8px 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  transition: background 0.2s;
-}
-
-.search-btn:hover {
-  background: #333;
-}
-
-/* ----- Account Dropdown ----- */
-.account-wrapper {
-  position: relative;
-}
-
-.account-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 12px;
-  background: #fff;
-  border: 2px solid #000;
-  min-width: 180px;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-10px);
-  transition: all 0.3s ease;
-}
-
-.account-wrapper:hover .account-dropdown {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-.account-dropdown .dropdown-item {
-  display: block;
-  padding: 12px 20px;
-  color: #000;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: all 0.2s;
-}
-
-.account-dropdown .dropdown-item:hover {
-  background: #000;
-  color: #fff;
-}
-
-/* Nút đăng xuất */
-.account-dropdown .logout-btn {
-  display: block;
-  width: 100%;
-  padding: 12px 20px;
-  background: #fbfafa;   
-  color: #080808;          
-  border: none;
-  text-align: left;
-  font-size: 13px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.account-dropdown .logout-btn:hover {
-  background: #060606;       /* Hover nền trắng */
-  color: #fbfafa;            /* Chữ đen */
-}
-
-.divider {
-  height: 1px;
-  background: #e5e5e5;
-  margin: 8px 0;
-}
-
-/* ----- Cart ----- */
 .cart-btn {
   position: relative;
 }
 
 .cart-count {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: -2px;
+  right: -2px;
   background-color: #d00;
   color: #fff;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  min-width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: flex;
   justify-content: center;
   align-items: center;
   border-radius: 50%;
-  padding: 2px;
 }
 
-/* ----- Responsive ----- */
+/* Account Dropdown & Search Dropdown giữ nguyên logic hiển thị */
+.account-wrapper, .search-wrapper { position: relative; }
+
+.account-dropdown, .search-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 10px;
+  background: #fff;
+  border: 1px solid #eee;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  z-index: 1002;
+}
+
+.account-wrapper:hover .account-dropdown,
+.search-dropdown.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.account-dropdown { min-width: 180px; }
+.search-dropdown { display: flex; padding: 10px; min-width: 250px; }
+.search-input { flex: 1; padding: 8px; background: #f5f5f5; border: none; outline: none; }
+.search-btn { background: #000; color: #fff; border: none; padding: 8px 12px; cursor: pointer; }
+
+.account-dropdown .dropdown-item, .account-dropdown .logout-btn {
+  display: block;
+  width: 100%;
+  padding: 12px 15px;
+  text-decoration: none;
+  color: #333;
+  font-size: 13px;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.account-dropdown .dropdown-item:hover, .account-dropdown .logout-btn:hover {
+  background: #f5f5f5;
+  color: #000;
+}
+.divider { height: 1px; background: #eee; margin: 0; }
+
+/* =============================================
+   RESPONSIVE MOBILE & TABLET (Max-width: 1024px)
+   ============================================= */
 @media (max-width: 1024px) {
-  /* Mobile Menu Button */
+  /* Layout Header: Chia 3 phần đều nhau để Logo luôn ở giữa */
   .mobile-menu-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; /* Hiện nút hamburger */
+    flex: 1;       /* Chiếm 1 phần bên trái */
+    justify-content: flex-start;
     background: none;
     border: none;
     cursor: pointer;
-    padding: 8px;
+    padding: 0;
     color: #000;
-    order: -1;
-  }
-
-  .nav {
-    position: fixed;
-    top: 112px; /* top-bar (32px) + header (80px) */
-    left: 0;
-    right: 0;
-    background: #fff;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 20px;
-    gap: 0;
-    border-bottom: 1px solid #000;
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    transition: all 0.3s ease;
-    z-index: 999;
-  }
-
-  .nav.mobile-open {
-    max-height: 80vh;
-    opacity: 1;
-    overflow-y: auto;
-  }
-
-  .nav-link {
-    width: 100%;
-    padding: 16px 0;
-    border-bottom: 1px solid #e5e5e5;
-  }
-
-  .nav-link::after {
-    display: none;
-  }
-
-  /* Mobile Mega Menu */
-  .mega-parent {
-    width: 100%;
-  }
-
-  .mega-menu {
-    position: static;
-    width: 100%;
-    border: none;
-    opacity: 1;
-    visibility: visible;
-    transform: none;
-    display: none;
-  }
-
-  .mega-parent:hover .mega-menu {
-    display: none;
-  }
-
-  .mega-parent.mobile-open .mega-menu {
-    display: block;
-  }
-
-  .mega-content {
-    grid-template-columns: 1fr;
-    padding: 20px 0;
-    gap: 20px;
-  }
-
-  .column-list a {
-    padding: 8px 0;
   }
 
   .logo {
-    font-size: 20px;
-    border-width: 1px;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .header-container {
-    padding: 0 20px;
-    position: relative;
+    flex: 0 0 auto; /* Logo tự co giãn theo nội dung */
+    font-size: 18px;
+    padding: 4px 8px;
+    border-width: 2px;
   }
 
   .header-actions {
+    flex: 1;       /* Chiếm 1 phần bên phải */
+    justify-content: flex-end; /* Đẩy icon sang phải */
     gap: 12px;
   }
 
+  /* Navigation Drawer (Menu trượt) */
+  .nav {
+    position: fixed;
+    top: 102px; /* = Height TopBar (32px) + Header (70px) */
+    left: 0;
+    bottom: 0; /* Kéo dài xuống hết màn hình */
+    width: 100%; /* Full width */
+    background: #fff;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px 20px 80px 20px; /* Padding bottom lớn để tránh bị che */
+    gap: 0;
+    
+    /* Animation Trượt */
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Scroll */
+    overflow-y: auto;
+    border-top: 1px solid #eee;
+  }
+
+  .nav.mobile-open {
+    transform: translateX(0); /* Trượt ra */
+  }
+
+  /* Nav Links Mobile */
+  .nav-link {
+    width: 100%;
+    padding: 15px 0;
+    border-bottom: 1px solid #f0f0f0;
+    justify-content: space-between; /* Để nếu có icon mũi tên sẽ đẹp */
+    height: auto;
+  }
+  
+  .nav-link::after { display: none; }
+
+  /* Mega Menu Mobile Layout */
+  .nav-dropdown.mega-parent {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mega-menu {
+    position: static; /* Không absolute nữa */
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    width: 100%;
+    box-shadow: none;
+    border: none;
+    background: #fafafa; /* Nền xám nhẹ để phân biệt */
+    padding: 0;
+    
+    /* Mặc định hiển thị luôn danh sách con để dễ bấm trên mobile 
+       (Hoặc bạn có thể dùng JS toggle class để ẩn hiện) */
+    display: block; 
+  }
+
+  .mega-content {
+    display: flex;
+    flex-direction: column; /* Xếp dọc các cột */
+    padding: 15px;
+    gap: 25px;
+  }
+
+  .mega-column {
+    border-bottom: 1px dashed #ddd;
+    padding-bottom: 15px;
+  }
+  .mega-column:last-child {
+    border-bottom: none;
+  }
+
+  .column-title {
+    margin-bottom: 10px;
+    font-size: 13px;
+    border-left: 3px solid #666;
+  }
+
+  .column-list a {
+    padding: 6px 0;
+    font-size: 13px;
+    color: #555;
+  }
+
+  /* Search Dropdown Mobile */
   .search-dropdown {
-    min-width: 250px;
-    right: -20px;
+    position: fixed;
+    top: 102px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #eee;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
   }
 }
 

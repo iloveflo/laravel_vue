@@ -2,73 +2,63 @@
   <div class="products-page">
     <div class="container">
       <div class="layout">
-       <aside class="sidebar" :class="{ hidden: !showFilters }">
-        <div class="filter-panel">
-            <div class="filter-header">
-            <h2>
-                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                Bộ lọc
-            </h2>
-            </div>
+       <div class="products-page">
+          <div class="sidebar-overlay" :class="{ active: showFilters }" @click="showFilters = false"></div>
 
-            <!-- Nút Áp dụng lên đầu -->
-            <button @click="applyFilters" class="apply-btn" style="margin: 10px 0;">
-            Áp dụng
-            </button>
-
-            <!-- Price Filter -->
-            <div class="filter-section">
-            <h3>Khoảng giá - VND</h3>
-            <div class="price-inputs">
-                <input v-model="filters.minPrice" type="number" placeholder="Từ" class="input"/>
-                <input v-model="filters.maxPrice" type="number" placeholder="Đến" class="input"/>
-            </div>
-            </div>
-
-            <!-- Size Filter -->
-            <div class="filter-section">
-            <h3>Kích cỡ</h3>
-            <div class="size-buttons">
-                <button
-                v-for="size in availableSizes"
-                :key="size"
-                @click="toggleFilter('sizes', size)"
-                :class="{ active: filters.sizes.includes(size) }"
-                class="size-btn"
-                >
-                {{ size }}
+          <aside class="sidebar" :class="{ hidden: !showFilters }" @click.stop>
+            <div class="filter-panel">
+              <div class="filter-header">
+                <h2>
+                  <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  Bộ lọc
+                </h2>
+                <button class="close-sidebar-btn" @click="showFilters = false">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
                 </button>
-            </div>
-            </div>
+              </div>
 
-            <!-- Color Filter -->
-            <div class="filter-section">
-            <h3>Màu sắc</h3>
-            <div class="color-list">
-                <label
-                v-for="(color, idx) in availableColors"
-                :key="idx"
-                class="color-item"
-                >
-                <input
-                    type="checkbox"
-                    :checked="filters.colors.includes(color.name)"
-                    @change="toggleFilter('colors', color.name)"
-                />
-                <div
-                    class="color-box"
-                    :style="{ backgroundColor: color.code }"
-                />
-                <span>{{ color.name }}</span>
-                </label>
-            </div>
-            </div>
+              <button @click="applyFilters" class="apply-btn" style="margin: 10px 0;">
+                Áp dụng
+              </button>
 
+              <div class="filter-section">
+                <h3>Khoảng giá - VND</h3>
+                <div class="price-inputs">
+                  <input v-model="filters.minPrice" type="number" placeholder="Từ" class="input" />
+                  <input v-model="filters.maxPrice" type="number" placeholder="Đến" class="input" />
+                </div>
+              </div>
+
+              <div class="filter-section">
+                <h3>Kích cỡ</h3>
+                <div class="size-buttons">
+                  <button v-for="size in availableSizes" :key="size" @click="toggleFilter('sizes', size)"
+                    :class="{ active: filters.sizes.includes(size) }" class="size-btn">
+                    {{ size }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="filter-section">
+                <h3>Màu sắc</h3>
+                <div class="color-list">
+                  <label v-for="(color, idx) in availableColors" :key="idx" class="color-item">
+                    <input type="checkbox" :checked="filters.colors.includes(color.name)"
+                      @change="toggleFilter('colors', color.name)" />
+                    <div class="color-box" :style="{ backgroundColor: color.code }" />
+                    <span>{{ color.name }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
-        </aside>
 
 
         <!-- Products Grid -->
@@ -272,7 +262,6 @@ const fetchProducts = async (page = 1) => {
 
     // 3. Log đường dẫn ra để kiểm tra (Xem trong Console F12)
     const apiUrl = `/api/products/category/${slug}?${params.toString()}`;
-    console.log("Đang gọi API:", apiUrl);
 
     const response = await fetch(apiUrl);
 
@@ -281,7 +270,6 @@ const fetchProducts = async (page = 1) => {
     if (contentType && contentType.indexOf("application/json") === -1) {
         // Nếu server trả về HTML, log nội dung ra để biết lỗi gì
         const text = await response.text();
-        console.error("Lỗi: Server trả về HTML thay vì JSON:", text);
         throw new Error("Sai đường dẫn API hoặc lỗi Server 404/500");
     }
 
@@ -393,7 +381,7 @@ onMounted(() => {
 .products-page {
   min-height: 100vh;
   background-color: #ffffff;
-  padding-top: 80px;
+  padding-top: 50px;
 }
 
 .container {
@@ -405,8 +393,8 @@ onMounted(() => {
 .layout {
   display: flex;
   gap: 0;
+  align-items: stretch; /* Thêm dòng này: Bắt buộc 2 cột cao bằng nhau */
 }
-
 /* --- SIDEBAR --- */
 .sidebar {
   width: 280px;
@@ -414,7 +402,7 @@ onMounted(() => {
   transition: all 0.4s ease;
   min-height: calc(100vh - 80px);
   overflow: hidden;
-  box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .sidebar.hidden {
@@ -437,10 +425,12 @@ onMounted(() => {
 .filter-panel::-webkit-scrollbar {
   width: 6px;
 }
+
 .filter-panel::-webkit-scrollbar-thumb {
   background: #555;
   border-radius: 3px;
 }
+
 .filter-panel::-webkit-scrollbar-track {
   background: #000;
 }
@@ -478,13 +468,42 @@ onMounted(() => {
   margin-bottom: 30px;
   transition: all 0.3s ease;
   border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
+
 .apply-btn:hover {
   background: #000000;
   color: #ffffff;
   border: 1px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(255,255,255,0.2);
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.2);
+}
+
+.close-sidebar-btn {
+  display: none;
+  /* Ẩn trên desktop */
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1999;
+  /* Nằm dưới sidebar */
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+}
+
+.sidebar-overlay.active {
+  display: none;
+  /* Desktop không cần overlay */
 }
 
 /* Filter sections */
@@ -532,7 +551,7 @@ onMounted(() => {
 .input:focus {
   outline: none;
   border-bottom-color: #ffffff;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* Size Buttons */
@@ -610,7 +629,7 @@ onMounted(() => {
 .main-content {
   flex: 1;
   background: #ffffff;
-  padding: 40px 60px;
+  padding: 100px 60px;
   display: flex;
   flex-direction: column;
 }
@@ -669,7 +688,7 @@ onMounted(() => {
 .product-card:hover {
   transform: translateY(-2px);
   z-index: 2;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
 }
 
 .product-card:hover .product-image img {
@@ -704,14 +723,14 @@ onMounted(() => {
 
 .product-info {
   /* Tăng số 24px lên thành 40px hoặc 50px */
-  padding: 24px 20px; 
-  
+  padding: 24px 20px;
+
   flex: 1;
   display: flex;
   flex-direction: column;
-  
+
   /* Thêm dòng này để nội dung dãn đều ra, nhìn sẽ đẹp hơn khi thẻ dài */
-  justify-content: space-between; 
+  justify-content: space-between;
 }
 
 .product-name {
@@ -719,18 +738,22 @@ onMounted(() => {
   font-weight: 400;
   color: #000000;
   margin: 0 0 16px 0;
-  
+
   /* --- SỬA PHẦN NÀY --- */
-  line-height: 1.5; /* 1 dòng cao 30px (20px * 1.5) */
-  min-height: 60px; /* Đặt tối thiểu 60px để chứa đủ 2 dòng */
+  line-height: 1.5;
+  /* 1 dòng cao 30px (20px * 1.5) */
+  min-height: 60px;
+  /* Đặt tối thiểu 60px để chứa đủ 2 dòng */
   /* Xóa height: 40px cũ đi */
-  
+
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* Giới hạn 2 dòng */
+  -webkit-line-clamp: 2;
+  /* Giới hạn 2 dòng */
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis; /* Thêm dấu ... nếu dài hơn 2 dòng */
-  
+  text-overflow: ellipsis;
+  /* Thêm dấu ... nếu dài hơn 2 dòng */
+
   letter-spacing: 0.5px;
 }
 
@@ -804,7 +827,8 @@ onMounted(() => {
   letter-spacing: 2px;
   text-transform: uppercase;
   transition: all 0.3s;
-  margin-top: auto; /* Đẩy nút xuống dưới cùng */
+  margin-top: auto;
+  /* Đẩy nút xuống dưới cùng */
 }
 
 .detail-btn:hover {
@@ -829,11 +853,17 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-.loading p, .no-products p {
+.loading p,
+.no-products p {
   margin-top: 16px;
   color: #999999;
   font-size: 11px;
@@ -912,69 +942,207 @@ onMounted(() => {
 }
 
 /* --- RESPONSIVE --- */
+/* ... Giữ nguyên các phần CSS chung ở trên ... */
+
+/* --- RESPONSIVE OPTIMIZATION --- */
+
+/* 1. Tablet & Màn hình laptop nhỏ (1024px - 1400px) */
 @media (max-width: 1400px) {
   .products-grid {
     grid-template-columns: repeat(3, 1fr);
+    /* 3 cột */
   }
 }
 
-@media (max-width: 992px) {
-  .toggle-filter-btn {
+/* 2. Tablet dọc & Mobile ngang (768px - 1023px) */
+@media (max-width: 1023px) {
+  .layout {
+    position: relative;
+  }
+
+  /* Chuyển Sidebar thành dạng Drawer (Trượt) */
+  /* Hiển thị nút đóng và overlay */
+  .close-sidebar-btn {
+    display: block;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .filter-header {
     display: flex;
+    justify-content: space-between;
+    /* Đẩy chữ Bộ lọc và nút X ra 2 bên */
+    align-items: center;
   }
-  
-  .products-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .main-content {
-    padding: 30px 40px;
-  }
-}
 
-@media (max-width: 768px) {
+  /* Cấu hình Sidebar dạng Drawer (Ngăn kéo) */
   .sidebar {
     position: fixed;
-    left: 0;
     top: 0;
+    left: 0;
     height: 100vh;
-    z-index: 1000;
-    padding-top: 80px;
-  }
-  
-  .sidebar.hidden {
-    transform: translateX(-100%);
-  }
-  
-  .main-content {
-    padding: 20px 30px;
-  }
-  
-  .header h1 {
-    font-size: 24px;
+    width: 280px;
+    background: #000;
+    /* Màu nền sidebar */
+    z-index: 2000;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
+
+    /* Trạng thái HIỆN (showFilters = true) */
+    transform: translateX(0);
+    transition: transform 0.3s ease-in-out;
   }
 
-  /* Responsive Pagination */
-  .page-btn {
-    height: 36px;
-    min-width: 36px;
-    font-size: 12px;
-    padding: 0 8px;
+  /* Trạng thái ẨN (showFilters = false -> có class .hidden) */
+  .sidebar.hidden {
+    transform: translateX(-100%);
+    /* Trượt hẳn ra khỏi màn hình bên trái */
+    width: 280px;
+    /* Giữ nguyên width để animation mượt */
+  }
+
+  .filter-panel {
+    top: 0;
+    height: 100%;
+    padding-top: 60px;
+    /* Chừa chỗ cho nút đóng nếu có */
+  }
+
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    /* 2 cột */
+  }
+
+  .main-content {
+    padding: 30px;
   }
 }
 
-@media (max-width: 576px) {
+/* 3. Mobile (Dưới 768px) */
+@media (max-width: 768px) {
+  .products-page {
+    padding-top: 100px;
+    /* Giảm khoảng cách top */
+  }
+
+  /* Header trang (Tiêu đề + Nút lọc) */
+  .header {
+    flex-direction: row;
+    /* Giữ ngang hàng */
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    gap: 10px;
+  }
+
+  .header h1 {
+    font-size: 18px;
+    /* Giảm size tiêu đề */
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+
+  .toggle-filter-btn {
+    padding: 8px 12px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  /* Main Content */
+  .main-content {
+    padding: 15px 10px;
+    /* Giảm padding lề */
+  }
+
+  /* Grid Sản phẩm - Quan trọng: Giữ 2 cột trên mobile */
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    /* Giữ gap nhỏ tạo hiệu ứng border */
+    border-top: 1px solid #e0e0e0;
+    border-left: 1px solid #e0e0e0;
+  }
+
+  /* Tinh chỉnh thẻ sản phẩm trên mobile */
+  .product-info {
+    padding: 12px 10px;
+    /* Giảm padding trong thẻ */
+  }
+
+  .product-name {
+    font-size: 13px;
+    /* Chữ tên nhỏ lại */
+    min-height: 40px;
+    /* Giảm chiều cao tối thiểu */
+    margin-bottom: 8px;
+    font-weight: 500;
+    -webkit-line-clamp: 2;
+  }
+
+  .price-sale,
+  .product-price {
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    /* Cho phép giá xuống dòng nếu quá dài */
+    gap: 6px;
+  }
+
+  .sale-price,
+  .original-price,
+  .price {
+    font-size: 14px;
+    /* Giá nhỏ lại */
+  }
+
+  /* Ẩn bớt size/color trên mobile nếu cần cho gọn, hoặc thu nhỏ */
+  .size-tag {
+    font-size: 9px;
+    padding: 4px 6px;
+  }
+
+  .color-circle {
+    width: 16px;
+    height: 16px;
+  }
+
+  .badge {
+    font-size: 8px;
+    padding: 4px 8px;
+  }
+
+  /* Nút xem chi tiết */
+  .detail-btn {
+    padding: 8px;
+    font-size: 9px;
+  }
+
+  /* Pagination trên mobile */
+  .pagination-container {
+    gap: 8px;
+    margin-top: 30px;
+  }
+
+  .page-btn {
+    height: 32px;
+    min-width: 32px;
+    font-size: 12px;
+    padding: 0 6px;
+  }
+}
+
+/* 4. Màn hình rất nhỏ (iPhone 5/SE - Dưới 375px) */
+@media (max-width: 375px) {
   .products-grid {
     grid-template-columns: 1fr;
+    /* Về 1 cột nếu màn hình quá bé */
   }
-  
-  .main-content {
-    padding: 20px;
-  }
-  
+
   .header h1 {
-    font-size: 20px;
-    letter-spacing: 2px;
+    font-size: 16px;
   }
 }
 </style>

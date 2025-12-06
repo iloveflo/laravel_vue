@@ -147,7 +147,7 @@ const handleLogin = async () => {
 .login-page-wrapper {
   display: flex;
   justify-content: center;
-  padding: 80px 20px;
+  padding: 110px 20px;
   background-color: #fff;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
