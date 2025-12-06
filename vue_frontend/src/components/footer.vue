@@ -109,7 +109,21 @@
   margin: 0;
   padding: 0;
 }
+footer{
+  position: relative;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+}
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Chiều cao tối thiểu bằng 100% chiều cao màn hình */
+}
 
+.main-content {
+  flex: 1; /* Phần này sẽ tự động giãn ra để chiếm hết khoảng trống, đẩy footer xuống */
+}
 .site-footer {
   background-color: #000;
   color: #fff;
@@ -119,10 +133,12 @@
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position:relative;
+  bottom: 0;
 }
 
 .footer-container {
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 24px;
 }

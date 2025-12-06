@@ -263,7 +263,9 @@
 
 <style scoped>
 .about-page {
+  
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  display:block;
 }
 
 .container {
@@ -274,6 +276,9 @@
 
 /* Hero Section */
 .hero-section {
+  
+  position:relative;
+
   background-color: #000;
   color: #fff;
   padding: 120px 40px;
