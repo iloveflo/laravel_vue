@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <footer class="site-footer">
     <div class="footer-container">
       
@@ -98,11 +99,64 @@
   </footer>
 </template>
 
+=======
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-col">
+        <h3>FLORENTIC</h3>
+        <p>Phong cách tối giản, hiện đại và nghệ thuật. Chúng tôi định nghĩa lại vẻ đẹp qua những đường cắt vuông vức.</p>
+        <p>Hotline: 1900 0000<br>Email: hello@florentic.com</p>
+      </div>
+      
+      <div class="footer-col">
+        <h4>KHÁM PHÁ</h4>
+        <ul>
+            <li><router-link to="/">New Arrivals</router-link></li>
+            <li><router-link to="/category/ao">Áo</router-link></li>
+            <li><router-link to="/category/quan">Quần</router-link></li>
+            <li><router-link to="/sale">Sale Off</router-link></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>HỖ TRỢ</h4>
+        <ul>
+            <li><router-link to="/shipping">Chính sách vận chuyển</router-link></li>
+            <li><router-link to="/returns">Đổi trả & Hoàn tiền</router-link></li>
+            <li><router-link to="/size-guide">Hướng dẫn chọn size</router-link></li>
+            <li><router-link to="/contact">Liên hệ</router-link></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>ĐĂNG KÝ NHẬN TIN</h4>
+        <p class="newsletter-text">Nhận thông tin cập nhật mới nhất về bộ sưu tập và ưu đãi độc quyền.</p>
+        <div class="newsletter-form">
+            <input type="email" placeholder="Email..." />
+            <button>&rarr;</button>
+        </div>
+        
+        <div class="social-links">
+             <h4>THEO DÕI</h4>
+             <div class="social-icons">
+                 <a href="#">FB</a> <a href="#">IG</a> <a href="#">TK</a> <a href="#">YT</a>
+             </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2025 FLORENTIC. ALL RIGHTS RESERVED.</p>
+    </div>
+  </footer>
+</template>
+
+>>>>>>> 8758146 (Push project to huy branch)
 <script setup>
 // Không cần logic phức tạp
 </script>
 
 <style scoped>
+<<<<<<< HEAD
 /* Reset cơ bản */
 * {
   box-sizing: border-box;
@@ -549,5 +603,96 @@
     width: 16px;
     height: 16px;
   }
+=======
+.footer {
+  background-color: #1a1a1a;
+  color: #aaa;
+  padding: 60px 0 20px;
+  margin-top: 50px;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+  gap: 40px;
+}
+
+.footer-col h3 {
+    color: white;
+    margin-top: 0;
+    text-transform: uppercase;
+}
+.footer-col h4 {
+    color: white;
+    font-size: 0.9rem;
+    margin-top: 0;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.footer-col ul {
+    list-style: none;
+    padding: 0;
+}
+.footer-col li {
+    margin-bottom: 10px;
+}
+.footer-col a {
+    color: #aaa;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.footer-col a:hover {
+    color: white;
+}
+
+.newsletter-form {
+    display: flex;
+    margin-top: 15px;
+    margin-bottom: 20px;
+}
+.newsletter-form input {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: #333;
+    color: white;
+    outline: none;
+}
+.newsletter-form button {
+    background: #fff;
+    border: none;
+    padding: 0 15px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.social-links {
+    margin-top: 20px;
+}
+.social-icons {
+    display: flex;
+    gap: 15px;
+}
+
+.footer-bottom {
+    text-align: center;
+    border-top: 1px solid #333;
+    margin-top: 50px;
+    padding-top: 20px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+    .footer-container {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+>>>>>>> 8758146 (Push project to huy branch)
 }
 </style>

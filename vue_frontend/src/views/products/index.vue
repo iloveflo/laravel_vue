@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="products-page">
     <div class="container">
       <div class="layout">
@@ -942,3 +943,12 @@ onMounted(() => {
   }
 }
 </style>
+=======
+  <div class="page-container">
+    <ProductGrid />
+  </div>
+</template>
+<script setup>
+import ProductGrid from '../../components/ProductGrid.vue'
+</script>
+>>>>>>> 8758146 (Push project to huy branch)

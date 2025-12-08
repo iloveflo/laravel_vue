@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div>
     <h2>Quản lý người dùng</h2>
 
@@ -812,3 +813,9 @@ button:disabled {
 }
 
 </style>
+=======
+  <div class="page-container">
+    <h1>Admin Page</h1>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

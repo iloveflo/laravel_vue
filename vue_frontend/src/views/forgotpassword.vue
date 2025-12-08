@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="forgot-wrapper">
     <div class="forgot-box">
       <h2 class="title">Quên mật khẩu</h2>
@@ -157,3 +158,10 @@ label {
   border-bottom: 1px solid #000;
 }
 </style>
+=======
+  <div class="page-container">
+    <h1>Forgot Password</h1>
+    <p>Forgot password form coming soon.</p>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

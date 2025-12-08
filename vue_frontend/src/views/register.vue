@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="register-page">
     <h2>Đăng ký</h2>
 
@@ -235,3 +236,10 @@ async function submitRegister() {
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 </style>
+=======
+  <div class="page-container">
+    <h1>Register</h1>
+    <p>Register form coming soon.</p>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

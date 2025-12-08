@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="size-guide">
     <div class="container">
       <!-- Page Header -->
@@ -516,3 +517,9 @@ const currentMeasurements = computed(() => measurements[activeCategory.value]);
   }
 }
 </style>
+=======
+  <div class="page-container">
+    <h1>Size Guide</h1>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="contact-page">
 
     <h1 class="title">Liên hệ</h1>
@@ -186,3 +187,9 @@ textarea {
   color: #000;
 }
 </style>
+=======
+  <div class="page-container">
+    <h1>Contact Us</h1>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

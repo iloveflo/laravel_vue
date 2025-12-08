@@ -6,13 +6,22 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "format": "prettier --write ."
   },
   "dependencies": {
+<<<<<<< HEAD
     "axios": "^1.13.2",
     "vue": "^3.5.22",
     "vue-router": "^4.6.3",
     "vue-virtual-scroller": "^2.0.0-beta.8"
+=======
+    "chart.js": "^4.4.1",
+    "vue": "^3.5.22",
+    "vue-chartjs": "^5.3.0",
+    "vue-router": "^4.6.3",
+    "axios": "^1.6.0"
+>>>>>>> 8758146 (Push project to huy branch)
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",

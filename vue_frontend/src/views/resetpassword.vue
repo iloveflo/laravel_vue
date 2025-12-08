@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="reset-password-page">
     <div class="reset-container">
       <h2>Đặt lại mật khẩu</h2>
@@ -162,3 +163,9 @@ button:disabled {
   cursor: not-allowed;
 }
 </style>
+=======
+  <div class="page-container">
+    <h1>Reset Password</h1>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

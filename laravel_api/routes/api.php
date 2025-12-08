@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum','admin')->prefix('admin')->group(function() {
     Route::get('/orders/{order_code}', [OrderController::class, 'show']);
     Route::put('/{order_code}/status', [OrderController::class, 'updateStatus']);
 
+<<<<<<< HEAD
     //quản lý người dùng
     Route::get('/users/deleted', [UserController::class,'deletedUsers']);       // danh sách đã xóa
     Route::patch('/users/{id}/restore', [UserController::class,'restore']);    // khôi phục
@@ -32,6 +33,22 @@ Route::middleware('auth:sanctum','admin')->prefix('admin')->group(function() {
     Route::delete('/users/{id}', [UserController::class,'destroy']); // xóa user
     Route::patch('/users/{id}/status', [UserController::class,'changeStatus']); // change status
     Route::get('/users/{id}/orders', [UserController::class,'orders']); // lịch sử đơn hàng
+=======
+    // Dành cho biểu đồ sản phẩm bán theo danh mục
+    Route::get('/sales-by-category', [StatisticsController::class, 'getSalesByCategory']);
+
+    // Dành cho biểu đồ tròn trạng thái đơn hàng
+    Route::get('/order-status-distribution', [StatisticsController::class, 'getOrderStatusDistribution']);
+
+    // Dành cho top selling
+    Route::get('/top-selling-products', [StatisticsController::class, 'getTopSellingProducts']);
+
+    // Lấy danh sách đơn hàng mới, sản phẩm sắp hết hàng
+    Route::get('/recent-activities', [StatisticsController::class, 'getRecentActivities']);
+
+    // Export dữ liệu
+    Route::post('/export', [StatisticsController::class, 'exportReport']);
+>>>>>>> 8758146 (Push project to huy branch)
 });
 
 //hiển thị sản phẩm

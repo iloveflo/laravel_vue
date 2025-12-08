@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="cart-container">
     <h2>Giỏ hàng của bạn</h2>
 
@@ -438,3 +439,10 @@ h2 {
   }
 }
 </style>
+=======
+  <div class="page-container">
+    <h1>Your Cart</h1>
+    <p>Cart functionality coming soon.</p>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

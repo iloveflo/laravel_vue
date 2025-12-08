@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\ProductVariant;
 
 class Product extends Model
 {
@@ -51,26 +52,43 @@ class Product extends Model
     /**
      * Quan hệ: Sản phẩm có nhiều hình ảnh
      */
+    // Sản phẩm có nhiều ảnh
+
     public function images()
     {
         return $this->hasMany(ProductImage::class, 'product_id');
     }
 
+    // Ảnh chính
+    public function mainImage()
+    {
+        return $this->hasOne(ProductImage::class, 'product_id')
+            ->where('is_primary', 1)
+            ->orderBy('sort_order');
+    }
+    // Accessor: trả về URL ảnh chính (hoặc null nếu không có)
+    public function getMainImageUrlAttribute()
+    {
+        // ưu tiên ảnh đánh dấu is_primary
+        $image = $this->mainImage ?: $this->images()->orderBy('sort_order')->first();
+
+        if (!$image) {
+            return null;
+        }
+
+        // image_path lưu kiểu: products/abc.jpg
+        return asset('storage/' . $image->image_path);
+    }
     /**
      * Quan hệ: Sản phẩm có nhiều size
      */
-    public function sizes()
+
+
+    public function variants()
     {
-        return $this->hasMany(ProductSize::class, 'product_id');
+        return $this->hasMany(ProductVariant::class, 'product_id');
     }
 
-    /**
-     * Quan hệ: Sản phẩm có nhiều màu
-     */
-    public function colors()
-    {
-        return $this->hasMany(ProductColor::class, 'product_id');
-    }
 
     /**
      * Quan hệ: Sản phẩm có nhiều đánh giá

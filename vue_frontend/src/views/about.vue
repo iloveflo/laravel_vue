@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="about-page">
     <!-- Hero Section -->
     <section class="hero-section">
@@ -692,3 +693,9 @@
   }
 }
 </style>
+=======
+  <div class="page-container">
+    <h1>About Us</h1>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

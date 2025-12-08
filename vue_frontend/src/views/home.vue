@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
     <main class="main-content">
       <!-- Hero Section -->
       <section class="hero-section">
@@ -750,3 +751,79 @@ onUnmounted(() => {
   }
 }
 </style>
+=======
+  <div class="home-container">
+    <section class="hero">
+        <div class="hero-content">
+            <span class="subtitle">— THỜI TRANG TỐI GIẢN —</span>
+            <h1>FLORENTIC</h1>
+            <p>Định nghĩa lại sự tối giản. Nghệ thuật trên từng đường cắt.</p>
+            <router-link to="/shop" class="cta-btn">MUA NGAY</router-link>
+        </div>
+    </section>
+
+    <!-- Placeholder for blocks if any -->
+  </div>
+</template>
+
+<script setup>
+</script>
+
+<style scoped>
+.home-container {
+    padding-bottom: 50px;
+}
+
+.hero {
+    height: 80vh;
+    background-color: #f4f4f4; /* Fallback */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.hero-content {
+    max-width: 600px;
+    padding: 20px;
+}
+
+.subtitle {
+    display: block;
+    font-size: 1rem;
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+    color: #666;
+}
+
+h1 {
+    font-size: 4rem;
+    margin: 0 0 20px;
+    letter-spacing: 5px;
+    font-weight: 900;
+    color: #2c3e50;
+}
+
+p {
+    font-size: 1.2rem;
+    color: #555;
+    margin-bottom: 40px;
+    font-style: italic;
+}
+
+.cta-btn {
+    display: inline-block;
+    padding: 15px 40px;
+    background: #2c3e50;
+    color: white;
+    text-decoration: none;
+    letter-spacing: 2px;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.cta-btn:hover {
+    background: #000;
+}
+</style>
+>>>>>>> 8758146 (Push project to huy branch)

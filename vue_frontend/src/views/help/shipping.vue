@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="shipping-policy">
     <div class="container">
       <!-- Page Header -->
@@ -627,3 +628,9 @@ const importantNotes = [
   }
 }
 </style>
+=======
+  <div class="page-container">
+    <h1>Shipping Policy</h1>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

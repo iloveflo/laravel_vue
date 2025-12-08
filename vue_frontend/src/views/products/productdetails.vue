@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="product-details-page" v-if="product">
     <!-- Top Section -->
     <div class="top-section">
@@ -670,3 +671,10 @@ const addToCart = async () => {
   }
 }
 </style>
+=======
+  <div class="page-container">
+    <h1>Product Details</h1>
+    <p>Product details coming soon.</p>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

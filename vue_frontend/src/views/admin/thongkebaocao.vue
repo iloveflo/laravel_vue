@@ -1,5 +1,5 @@
 <template>
-<h2>Thống kê báo cáo</h2>
+  <div class="page-container">
+    <h1>Admin Page</h1>
+  </div>
 </template>
-<script setup>
-</script>

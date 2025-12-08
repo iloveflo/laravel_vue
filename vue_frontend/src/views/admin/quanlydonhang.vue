@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="p-6 bg-gray-50 min-h-screen font-sans">
     <div v-if="currentTab === 'orders'">
       <div class="bg-white p-4 rounded-lg shadow mb-6">
@@ -1034,3 +1035,9 @@ button:disabled {
   }
 }
   </style>
+=======
+  <div class="page-container">
+    <h1>Admin Page</h1>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

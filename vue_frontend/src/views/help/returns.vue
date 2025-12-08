@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="returns-page">
     <h1 class="title">Đổi Trả & Hoàn Tiền</h1>
 
@@ -116,3 +117,9 @@ ol li {
   list-style: decimal;
 }
 </style>
+=======
+  <div class="page-container">
+    <h1>Returns Policy</h1>
+  </div>
+</template>
+>>>>>>> 8758146 (Push project to huy branch)

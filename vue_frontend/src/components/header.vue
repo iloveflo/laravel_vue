@@ -1,4 +1,5 @@
 <template>
+<<<<<<< HEAD
   <div class="header-wrapper">
     <div class="top-bar">
       <span>MIỄN PHÍ VẬN CHUYỂN CHO ĐƠN HÀNG TỪ 500K</span>
@@ -151,6 +152,70 @@
   </div>
 </template>
 
+=======
+  <header class="header">
+    <div class="header-container">
+      <div class="logo">Florentic</div>
+      
+      <nav class="nav-links">
+        <div class="nav-item-group">
+            <span class="nav-item">Áo</span>
+            <div class="dropdown">
+                <router-link to="/category/ao-thun">Áo Thun (T-Shirts)</router-link>
+                <router-link to="/category/ao-so-mi">Áo Sơ Mi (Shirts)</router-link>
+                <router-link to="/category/ao-polo">Áo Polo</router-link>
+                <router-link to="/category/ao-khoac">Áo Khoác / Blazer</router-link>
+                <router-link to="/category/hoodie">Hoodie & Sweatshirt</router-link>
+            </div>
+        </div>
+        <div class="nav-item-group">
+            <span class="nav-item">QUẦN</span>
+             <div class="dropdown">
+                <router-link to="/category/quan-tay">Quần Tây (Trousers)</router-link>
+                <router-link to="/category/denim">Denim / Jeans</router-link>
+                <router-link to="/category/short">Quần Short</router-link>
+                <router-link to="/category/kaki">Quần Kaki</router-link>
+                <router-link to="/category/jogger">Quần Jogger</router-link>
+            </div>
+        </div>
+        <div class="nav-item-group">
+            <span class="nav-item">PHỤ KIỆN</span>
+             <div class="dropdown">
+                <router-link to="/category/tui-xach">Túi Xách / Balo</router-link>
+                <router-link to="/category/mu">Mũ / Nón</router-link>
+                <router-link to="/category/that-lung">Thắt Lưng</router-link>
+                <router-link to="/category/vi">Ví Da</router-link>
+                <router-link to="/category/tat">Tất / Vớ</router-link>
+            </div>
+        </div>
+        <div class="nav-item-group">
+            <span class="nav-item">BỘ SƯU TẬP</span>
+             <div class="dropdown">
+                <router-link to="/collection/new-arrivals-2025">New Arrivals 2025</router-link>
+                <router-link to="/collection/essentials">The Essentials</router-link>
+                <router-link to="/collection/monochrome">Monochrome Series</router-link>
+                <router-link to="/sale">VIEW ALL SALE</router-link>
+            </div>
+        </div>
+      </nav>
+
+      <div class="header-actions">
+        <div class="search-box">
+             <i class="fas fa-search"></i>
+        </div>
+        <div class="action-btn cart-btn">
+             <router-link to="/cart"><i class="fas fa-shopping-bag"></i></router-link>
+             <span class="badge">0</span>
+        </div>
+        <router-link to="/login" class="login-btn">
+            Account
+        </router-link>
+      </div>
+    </div>
+  </header>
+</template>
+
+>>>>>>> 8758146 (Push project to huy branch)
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -282,8 +347,8 @@ const performSearch = () => {
 }
 </script>
 
-
 <style scoped>
+<<<<<<< HEAD
 .header-wrapper {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
 }
@@ -759,5 +824,143 @@ const performSearch = () => {
   .mobile-menu-btn {
     display: none;
   }
+=======
+.header {
+  background: white;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.header-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 70px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #2c3e50;
+  text-transform: uppercase;
+}
+
+.nav-links {
+  display: flex;
+  gap: 30px;
+}
+
+.nav-item-group {
+    position: relative;
+    padding: 20px 0;
+    cursor: pointer;
+}
+
+.nav-item {
+  text-decoration: none;
+  color: #555;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.nav-item-group:hover .nav-item {
+  color: #2c3e50;
+  font-weight: 700;
+}
+
+.dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    min-width: 200px;
+    padding: 15px 0;
+    border-radius: 4px;
+    z-index: 101;
+}
+
+.nav-item-group:hover .dropdown {
+    display: block;
+}
+
+.dropdown a {
+    display: block;
+    padding: 10px 20px;
+    text-decoration: none;
+    color: #666;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.dropdown a:hover {
+    background: #f5f5f5;
+    color: #2c3e50;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.action-btn {
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #333;
+    position: relative;
+}
+
+.search-box {
+    cursor: pointer;
+    color: #333;
+}
+
+.badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #2c3e50;
+    color: white;
+    font-size: 10px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-btn {
+    text-decoration: none;
+    color: #333;
+    font-weight: 600;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    padding: 6px 15px;
+    border-radius: 20px;
+    transition: all 0.2s;
+}
+
+.login-btn:hover {
+    background: #2c3e50;
+    color: white;
+    border-color: #2c3e50;
+}
+
+@media (max-width: 768px) {
+    .nav-links { display: none; }
+>>>>>>> 8758146 (Push project to huy branch)
 }
 </style>
