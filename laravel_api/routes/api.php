@@ -44,6 +44,7 @@ Route::middleware('auth:sanctum', 'admin')->prefix('admin')->group(function () {
     Route::get('/statistics/revenue-over-time', [StatisticsController::class, 'getRevenueOverTime']); // Dành cho biểu đồ doanh thu
     Route::get('/statistics/sales-by-category', [StatisticsController::class, 'getSalesByCategory']); // Dành cho biểu đồ sản phẩm bán theo danh mục
     Route::get('/statistics/order-status-distribution', [StatisticsController::class, 'getOrderStatusDistribution']); // Dành cho biểu đồ tròn trạng thái đơn hàng
+    Route::get('/statistics/top-selling-products', [StatisticsController::class, 'getTopSellingProducts']); // Dành cho top selling
     Route::get('/statistics/recent-activities', [StatisticsController::class, 'getRecentActivities']); // Lấy danh sách đơn hàng mới, sản phẩm sắp hết hàng
     Route::post('/statistics/export', [StatisticsController::class, 'exportReport']);   // Export dữ liệu
 
@@ -82,9 +83,7 @@ Route::prefix('cart')->group(function () {
 
     Route::get('/', [CartController::class, 'index']);
     Route::post('/add', [CartController::class, 'addToCart']);
-
-    // Xóa item (DELETE /api/cart/remove/{id})
-    // Lưu ý: Cần gửi kèm session_id trong body hoặc query param nếu là khách vãng lai
+    Route::put('/update', [CartController::class, 'update']);
     Route::delete('/remove/{id}', [CartController::class, 'remove']);
 });
 

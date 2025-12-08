@@ -14,10 +14,10 @@
           <img
             v-for="img in product.images"
             :key="img.id"
-            :src="img.image_path"
+            :src="img.url || '/' + img.image_path"
             class="thumb"
-            :class="{ active: img.image_path === mainImage }"
-            @click="mainImage = img.image_path"
+            :class="{ active: (img.url || '/' + img.image_path) === mainImage }"
+            @click="mainImage = img.url || '/' + img.image_path"
             @error="replaceImage"
           />
         </div>
@@ -39,32 +39,33 @@
         <p class="description">{{ product.description }}</p>
 
         <!-- Sizes -->
-        <div class="section-block">
+        <div class="section-block" v-if="sizeOptions.length">
           <h4>Kích thước</h4>
           <div class="size-list">
             <button
-              v-for="s in product.sizes"
-              :key="s.id"
+              v-for="s in sizeOptions"
+              :key="s"
               class="size-btn"
-              :class="{ active: selectedSize === s.size }"
-              @click="selectedSize = s.size"
+              :class="{ active: selectedSize === s }"
+              @click="selectedSize = s"
             >
-              {{ s.size }}
+              {{ s }}
             </button>
           </div>
         </div>
 
         <!-- Colors -->
-        <div class="section-block">
+        <div class="section-block" v-if="colorOptions.length">
           <h4>Màu sắc</h4>
           <div class="color-list">
             <div
-              v-for="c in product.colors"
-              :key="c.id"
+              v-for="c in colorOptions"
+              :key="c.name || c.code"
               class="color-circle"
-              :style="{ backgroundColor: c.color_code }"
-              :class="{ active: selectedColor === c.color_name }"
-              @click="selectedColor = c.color_name"
+              :style="{ backgroundColor: c.code }"
+              :class="{ active: selectedColor === (c.name || c.code) }"
+              @click="selectedColor = c.name || c.code"
+              :title="c.name"
             ></div>
           </div>
         </div>
@@ -119,7 +120,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRoute } from "vue-router";
 import axios from "axios";
 
@@ -138,36 +139,110 @@ const isAdding = ref(false); // Trạng thái loading của nút
 const formatPrice = (price) =>
   Number(price).toLocaleString("vi-VN") + "₫";
 
-// Logic lấy session_id cho khách vãng lai
+const isSale = computed(() => {
+  if (!product.value) return false;
+  if (!product.value.sale_price) return false;
+  return Number(product.value.sale_price) < Number(product.value.price);
+});
+
+// Lấy session_id cho khách vãng lai
 const getSessionId = () => {
-  let sessionId = localStorage.getItem('cart_session_id');
+  let sessionId = localStorage.getItem("cart_session_id");
   if (!sessionId) {
-    // Tạo session_id ngẫu nhiên nếu chưa có
-    sessionId = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now();
-    localStorage.setItem('cart_session_id', sessionId);
+    sessionId =
+      "sess_" + Math.random().toString(36).substr(2, 9) + Date.now();
+    localStorage.setItem("cart_session_id", sessionId);
   }
   return sessionId;
 };
+
+// SIZE options (ưu tiên từ variants, fallback sizes)
+const sizeOptions = computed(() => {
+  if (!product.value) return [];
+
+  // Ưu tiên variants
+  if (product.value.variants && product.value.variants.length) {
+    const s = new Set();
+    product.value.variants.forEach((v) => v.size && s.add(v.size));
+    return Array.from(s);
+  }
+
+  // Fallback: dùng quan hệ sizes cũ nếu có
+  if (product.value.sizes && product.value.sizes.length) {
+    const s = new Set();
+    product.value.sizes.forEach((v) => v.size && s.add(v.size));
+    return Array.from(s);
+  }
+
+  return [];
+});
+
+// COLOR options (ưu tiên từ variants, fallback colors)
+const colorOptions = computed(() => {
+  if (!product.value) return [];
+
+  // Ưu tiên variants
+  if (product.value.variants && product.value.variants.length) {
+    const map = new Map();
+    product.value.variants.forEach((v) => {
+      const key = v.color_name || v.color_code;
+      if (!key) return;
+      if (!map.has(key)) {
+        map.set(key, {
+          name: v.color_name,
+          code: v.color_code,
+        });
+      }
+    });
+    return Array.from(map.values());
+  }
+
+  // Fallback: dùng colors cũ
+  if (product.value.colors && product.value.colors.length) {
+    const map = new Map();
+    product.value.colors.forEach((c) => {
+      const key = c.color_name || c.color_code;
+      if (!key) return;
+      if (!map.has(key)) {
+        map.set(key, {
+          name: c.color_name,
+          code: c.color_code,
+        });
+      }
+    });
+    return Array.from(map.values());
+  }
+
+  return [];
+});
 
 // --- API Calls ---
 
 // 1. Lấy chi tiết sản phẩm
 onMounted(async () => {
   try {
-    // Lưu ý: Đảm bảo đường dẫn API đúng với router laravel
+    // Đúng route: /api/products/{slug}
     const res = await axios.get(`/products/${slug}`);
-    
-    // Giả sử API trả về { status:..., data: { product: ... } } hoặc trực tiếp product
-    // Tùy vào ProductDetailsController của bạn trả về gì. 
-    // Ở đây tôi giả định res.data.product như code cũ của bạn
-    product.value = res.data.product || res.data; 
+
+    // Controller trả về { product: ..., primary_image: ..., ... }
+    const payload = res.data.product || res.data;
+    product.value = payload;
 
     // Set ảnh chính
-    if (product.value) {
-        mainImage.value =
-        product.value.images?.find((img) => img.is_primary)?.image_path ||
-        product.value.images?.[0]?.image_path ||
-        "/placeholder.jpg";
+    if (product.value && product.value.images && product.value.images.length) {
+      const main =
+        product.value.images.find((img) => img.is_primary) ||
+        product.value.images[0];
+
+      mainImage.value =
+        main.url || (main.image_path ? "/" + main.image_path : "") ||
+        "https://via.placeholder.com/300x300?text=No+Image";
+    } else if (res.data.primary_image) {
+      // Nếu bạn chỉnh backend trả primary_image là full URL
+      mainImage.value = res.data.primary_image;
+    } else {
+      mainImage.value =
+        "https://via.placeholder.com/300x300?text=No+Image";
     }
   } catch (err) {
     console.error("Lỗi tải sản phẩm:", err);
@@ -186,19 +261,18 @@ const decreaseQty = () => {
   if (quantity.value > 1) quantity.value--;
 };
 
-// 2. Hàm Thêm vào giỏ hàng (QUAN TRỌNG)
+// 2. Hàm Thêm vào giỏ hàng
 const addToCart = async () => {
-  // Validate
   if (!product.value) return;
-  
-  // Kiểm tra Size (nếu sản phẩm có size)
-  if (product.value.sizes && product.value.sizes.length > 0 && !selectedSize.value) {
+
+  // Kiểm tra Size (nếu có size)
+  if (sizeOptions.value.length > 0 && !selectedSize.value) {
     alert("Vui lòng chọn kích thước!");
     return;
   }
-  
-  // Kiểm tra Màu (nếu sản phẩm có màu)
-  if (product.value.colors && product.value.colors.length > 0 && !selectedColor.value) {
+
+  // Kiểm tra Màu (nếu có màu)
+  if (colorOptions.value.length > 0 && !selectedColor.value) {
     alert("Vui lòng chọn màu sắc!");
     return;
   }
@@ -206,51 +280,44 @@ const addToCart = async () => {
   isAdding.value = true;
 
   try {
-    const token = localStorage.getItem('token'); // Lấy token nếu user đã login
-    const sessionId = getSessionId(); // Lấy session_id (luôn cần cho guest)
+    const token = localStorage.getItem("token");
+    const sessionId = getSessionId();
 
     const payload = {
       product_id: product.value.id,
       quantity: quantity.value,
       size: selectedSize.value || null,
       color: selectedColor.value || null,
-      session_id: sessionId // Gửi kèm session_id
+      session_id: sessionId,
     };
 
-    // Cấu hình header
-    const config = {
-      headers: {}
-    };
+    const config = { headers: {} };
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers["Authorization"] = `Bearer ${token}`;
     }
-    // Gọi API
+
     const response = await axios.post(`/cart/add`, payload, config);
 
-    // Xử lý thành công
     if (response.status === 200 || response.status === 201) {
       alert("✅ Đã thêm sản phẩm vào giỏ hàng!");
-      
-      // Nếu là lần đầu tiên và server trả về session_id mới (tùy logic server), update lại
+
       if (response.data.data?.session_id) {
-          localStorage.setItem('cart_session_id', response.data.data.session_id);
+        localStorage.setItem(
+          "cart_session_id",
+          response.data.data.session_id
+        );
       }
-      
-      // Phát tín hiệu để Header biết mà cập nhật
-      window.dispatchEvent(new Event('cart-updated')); 
-      
-      // Reset lại lựa chọn (nếu muốn)
-      // quantity.value = 1;
+
+      window.dispatchEvent(new Event("cart-updated"));
     }
   } catch (error) {
     console.error("Lỗi thêm giỏ hàng:", error);
-    
-    // Xử lý thông báo lỗi từ Server trả về
+
     if (error.response && error.response.data) {
-        const msg = error.response.data.message || 'Có lỗi xảy ra.';
-        alert(`❌ ${msg}`);
+      const msg = error.response.data.message || "Có lỗi xảy ra.";
+      alert(`❌ ${msg}`);
     } else {
-        alert("❌ Lỗi kết nối đến server.");
+      alert("❌ Lỗi kết nối đến server.");
     }
   } finally {
     isAdding.value = false;

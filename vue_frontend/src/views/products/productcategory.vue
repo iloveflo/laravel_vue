@@ -2,7 +2,7 @@
   <div class="products-page">
     <div class="container">
       <div class="layout">
-       <div class="products-page">
+        <div class="products-page">
           <div class="sidebar-overlay" :class="{ active: showFilters }" @click="showFilters = false"></div>
 
           <aside class="sidebar" :class="{ hidden: !showFilters }" @click.stop>
@@ -63,106 +63,83 @@
 
         <!-- Products Grid -->
         <main class="main-content">
-            <div class="header">
-              <h1>{{ categoryName || 'Sản phẩm' }}</h1>
-              <button @click="showFilters = !showFilters" class="toggle-filter-btn">
-                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                {{ showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc' }}
-              </button>
-            </div>
+          <div class="header">
+            <h1>{{ categoryName || 'Sản phẩm' }}</h1>
+            <button @click="showFilters = !showFilters" class="toggle-filter-btn">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              {{ showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc' }}
+            </button>
+          </div>
 
-            <div class="products-grid">
-              <div
-                v-for="product in products"
-                :key="product.id"
-                class="product-card"
-              >
-                <div class="product-image">
-                  <img
-                    :src="product.images?.find(img => img.is_primary)?.image_path || '/placeholder.jpg'"
-                    :alt="product.name"
-                    @error="(e) => e.target.src = 'https://via.placeholder.com/300x300?text=No+Image'"
-                  />
-                  <span v-if="product.featured" class="badge">Nổi bật</span>
-                </div>
-                <div class="product-info">
-                    <h3 class="product-name">{{ product.name }}</h3>
-                    
-                    <div class="product-price">
-                      <div v-if="product.sale_price && parseFloat(product.sale_price) < parseFloat(product.price)" class="price-sale">
-                        <span class="sale-price">{{ formatPrice(product.sale_price) }}</span>
-                        <span class="original-price">{{ formatPrice(product.price) }}</span>
-                      </div>
-                      <span v-else class="price">{{ formatPrice(product.price) }}</span>
-                    </div>
+          <div class="products-grid">
+            <div v-for="product in products" :key="product.id" class="product-card">
+              <div class="product-image">
+                <img :src="getProductImage(product)" :alt="product.name"
+                  @error="(e) => e.target.src = 'https://via.placeholder.com/300x300?text=No+Image'" />
 
-                    <div class="product-sizes">
-                      <span
-                        v-for="size in product.sizes?.slice(0, 5)"
-                        :key="size.id"
-                        class="size-tag"
-                      >
-                        {{ size.size }}
-                      </span>
-                    </div>
+                <span v-if="product.featured" class="badge">Nổi bật</span>
+              </div>
+              <div class="product-info">
+                <h3 class="product-name">{{ product.name }}</h3>
 
-                    <div class="product-colors">
-                      <div
-                        v-for="color in product.colors?.slice(0, 5)"
-                        :key="color.id"
-                        class="color-circle"
-                        :style="{ backgroundColor: color.color_code }"
-                        :title="color.color_name"
-                      />
-                    </div>
-
-                    <button class="detail-btn" @click="gotoDetail(product)">Xem chi tiết</button>
+                <div class="product-price">
+                  <div v-if="product.sale_price && parseFloat(product.sale_price) < parseFloat(product.price)"
+                    class="price-sale">
+                    <span class="sale-price">{{ formatPrice(product.sale_price) }}</span>
+                    <span class="original-price">{{ formatPrice(product.price) }}</span>
                   </div>
+                  <span v-else class="price">{{ formatPrice(product.price) }}</span>
+                </div>
+
+                <div class="product-sizes">
+                  <span v-for="size in getProductSizes(product).slice(0, 5)" :key="size" class="size-tag">
+                    {{ size }}
+                  </span>
+                </div>
+                <div class="product-colors">
+                  <div v-for="color in getProductColors(product).slice(0, 5)" :key="color.name || color.code"
+                    class="color-circle" :style="{ backgroundColor: color.code }" :title="color.name" />
+                </div>
+
+                <button class="detail-btn" @click="gotoDetail(product)">Xem chi tiết</button>
               </div>
             </div>
+          </div>
 
-            <div v-if="loading" class="loading">
-              <div class="spinner"></div>
-              <p>Đang tải...</p>
-            </div>
+          <div v-if="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Đang tải...</p>
+          </div>
 
-            <div v-if="!loading && products.length === 0" class="no-products">
-              <p>Không tìm thấy sản phẩm nào</p>
-            </div>
+          <div v-if="!loading && products.length === 0" class="no-products">
+            <p>Không tìm thấy sản phẩm nào</p>
+          </div>
 
-            <div v-if="totalPages > 1 && !loading" class="pagination-container">
-              <button 
-                class="page-btn prev" 
-                :disabled="currentPage === 1" 
-                @click="changePage(currentPage - 1)"
-              >
-                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-              </button>
+          <div v-if="totalPages > 1 && !loading" class="pagination-container">
+            <button class="page-btn prev" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
 
-              <div class="page-numbers">
-                <button 
-                  v-for="page in visiblePages" 
-                  :key="page"
-                  class="page-btn"
-                  :class="{ active: currentPage === page, 'dots': page === '...' }"
-                  @click="page !== '...' ? changePage(page) : null"
-                  :disabled="page === '...'"
-                >
-                  {{ page }}
-                </button>
-              </div>
-
-              <button 
-                class="page-btn next" 
-                :disabled="currentPage === totalPages" 
-                @click="changePage(currentPage + 1)"
-              >
-                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            <div class="page-numbers">
+              <button v-for="page in visiblePages" :key="page" class="page-btn"
+                :class="{ active: currentPage === page, 'dots': page === '...' }"
+                @click="page !== '...' ? changePage(page) : null" :disabled="page === '...'">
+                {{ page }}
               </button>
             </div>
-          </main>
+
+            <button class="page-btn next" :disabled="currentPage === totalPages" @click="changePage(currentPage + 1)">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </main>
       </div>
     </div>
   </div>
@@ -243,7 +220,7 @@ const fetchProducts = async (page = 1) => {
       page: page,
       per_page: itemsPerPage
     });
-    
+
     // Thêm filter
     if (filters.minPrice) params.append('min_price', filters.minPrice);
     if (filters.maxPrice) params.append('max_price', filters.maxPrice);
@@ -252,12 +229,12 @@ const fetchProducts = async (page = 1) => {
 
     // 2. Lấy slug
     const slug = route.params.slug;
-    
+
     // Kiểm tra nhanh: Nếu slug bị undefined thì không gọi API để tránh lỗi
     if (!slug) {
-        console.error("Lỗi: Không tìm thấy slug trên URL");
-        loading.value = false;
-        return;
+      console.error("Lỗi: Không tìm thấy slug trên URL");
+      loading.value = false;
+      return;
     }
 
     // 3. Log đường dẫn ra để kiểm tra (Xem trong Console F12)
@@ -268,42 +245,49 @@ const fetchProducts = async (page = 1) => {
     // 4. Kiểm tra xem Server có trả về lỗi HTML không (Tránh lỗi Unexpected token <)
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.indexOf("application/json") === -1) {
-        // Nếu server trả về HTML, log nội dung ra để biết lỗi gì
-        const text = await response.text();
-        throw new Error("Sai đường dẫn API hoặc lỗi Server 404/500");
+      // Nếu server trả về HTML, log nội dung ra để biết lỗi gì
+      const text = await response.text();
+      throw new Error("Sai đường dẫn API hoặc lỗi Server 404/500");
     }
 
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
 
     // 5. Gán dữ liệu (Dựa theo JSON bạn vừa gửi)
     // JSON của bạn: { products: { data: [...], current_page: 1, ... } }
-    
-    if (data.products && data.products.data) {
-        products.value = data.products.data; 
-        currentPage.value = data.products.current_page;
-        totalPages.value = data.products.last_page;
-        
-        // Cập nhật tên danh mục nếu muốn
-        if (data.category) {
-            categoryName.value = data.category.name; 
-        }
 
-        // Xử lý màu sắc
-        const colors = new Set();
-        data.products.data.forEach(product => {
-            product.colors?.forEach(color => {
-                colors.add(JSON.stringify({ name: color.color_name, code: color.color_code }));
-            });
+    if (data.products && data.products.data) {
+      products.value = data.products.data;
+      currentPage.value = data.products.current_page;
+      totalPages.value = data.products.last_page;
+
+      // Cập nhật tên danh mục nếu muốn
+      if (data.category) {
+        categoryName.value = data.category.name;
+      }
+
+      // Xử lý màu sắc
+      // Xử lý màu sắc từ variants
+      const colors = new Set();
+      data.products.data.forEach(product => {
+        product.variants?.forEach(variant => {
+          if (variant.color_name || variant.color_code) {
+            colors.add(JSON.stringify({
+              name: variant.color_name,
+              code: variant.color_code
+            }));
+          }
         });
-        if (availableColors.value.length === 0) {
-            availableColors.value = Array.from(colors).map(c => JSON.parse(c));
-        }
+      });
+
+      if (availableColors.value.length === 0) {
+        availableColors.value = Array.from(colors).map(c => JSON.parse(c));
+      }
     } else {
-        products.value = []; // Trường hợp không có dữ liệu
+      products.value = []; // Trường hợp không có dữ liệu
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -331,9 +315,9 @@ const isPriceValid = () => {
 };
 
 const applyFilters = () => {
-    if (!isPriceValid()) return;
-    currentPage.value = 1;
-    fetchProducts(1);
+  if (!isPriceValid()) return;
+  currentPage.value = 1;
+  fetchProducts(1);
 };
 
 const toggleFilter = (type, value) => {
@@ -361,12 +345,62 @@ watch(
     if (newSlug !== oldSlug) {
       // Có thể reset filter nếu muốn khi chuyển danh mục
       // filters.minPrice = ''; filters.maxPrice = ''; ...
-      
+
       currentPage.value = 1; // Reset về trang 1
       fetchProducts(1);
     }
   }
 );
+
+// Ảnh chính của sản phẩm
+const getProductImage = (product) => {
+  // Nếu sau này API có primary_image_url thì ưu tiên dùng
+  if (product.primary_image_url) return product.primary_image_url
+
+  if (product.images && product.images.length) {
+    const main = product.images.find(img => img.is_primary) || product.images[0]
+
+    // Model ProductImage đã có accessor "url"
+    if (main.url) return main.url
+
+    // fallback: ghép path nếu chỉ có image_path
+    if (main.image_path) return `/${main.image_path}`
+  }
+
+  // fallback cuối cùng
+  return 'https://via.placeholder.com/300x300?text=No+Image'
+}
+
+// Lấy list size từ variants (unique)
+const getProductSizes = (product) => {
+  if (!product.variants || !product.variants.length) return []
+
+  const set = new Set()
+  product.variants.forEach(v => {
+    if (v.size) set.add(v.size)
+  })
+
+  return Array.from(set) // ['S','M','L',...]
+}
+
+// Lấy list màu (unique theo color_name / color_code)
+const getProductColors = (product) => {
+  if (!product.variants || !product.variants.length) return []
+
+  const map = new Map()
+  product.variants.forEach(v => {
+    const key = v.color_name || v.color_code
+    if (!key) return
+    if (!map.has(key)) {
+      map.set(key, {
+        name: v.color_name,
+        code: v.color_code
+      })
+    }
+  })
+
+  return Array.from(map.values()) // [{name, code}, ...]
+}
 
 onMounted(() => {
   fetchProducts(1);
@@ -393,8 +427,10 @@ onMounted(() => {
 .layout {
   display: flex;
   gap: 0;
-  align-items: stretch; /* Thêm dòng này: Bắt buộc 2 cột cao bằng nhau */
+  align-items: stretch;
+  /* Thêm dòng này: Bắt buộc 2 cột cao bằng nhau */
 }
+
 /* --- SIDEBAR --- */
 .sidebar {
   width: 280px;

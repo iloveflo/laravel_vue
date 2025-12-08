@@ -6,10 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\CartSession;
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 
 class CartController extends Controller
 {
@@ -18,55 +16,52 @@ class CartController extends Controller
      */
     public function addToCart(Request $request)
     {
-        // 1. Validate dữ liệu đầu vào
+        // 1. Validate
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity'   => 'required|integer|min:1',
             'size'       => 'nullable|string',
-            'color'      => 'nullable|string',
-            // session_id là bắt buộc nếu user chưa login (client tự sinh hoặc server cấp)
+            'color'      => 'nullable|string', // Lưu ý: Frontend gửi tên màu hay mã màu? Hãy thống nhất.
             'session_id' => 'nullable|string', 
         ]);
 
         DB::beginTransaction();
         try {
-            // 2. Kiểm tra sản phẩm và tồn kho
+            // 2. Kiểm tra sản phẩm
             $product = Product::findOrFail($validated['product_id']);
-
-            // Kiểm tra xem sản phẩm có đang bán không 
-            if (isset($product->status) && $product->status !== 'active') { 
+            if ($product->status !== 'active') { 
                  return response()->json(['message' => 'Sản phẩm ngừng kinh doanh'], 400);
             }
 
-            // 3. Xác định định danh người dùng (User ID hoặc Session ID)
+            // Tìm dòng trong bảng product_variants khớp với Size và Màu khách chọn
+            $variant = \App\Models\ProductVariant::where('product_id', $product->id)
+                ->where('size', $validated['size']) 
+                ->where('color_name', $validated['color']) // Giả sử cột DB là color_name
+                ->first();
+
+            // Nếu không tìm thấy biến thể (có thể do khách hack request gửi size linh tinh)
+            if (!$variant) {
+                return response()->json(['message' => 'Phiên bản sản phẩm không tồn tại'], 404);
+            }
+
+            // 3. Logic User/Session (Giữ nguyên code của bạn)
             $userId = null;
             $sessionId = $request->input('session_id');
-
-            // --- SỬA ĐOẠN NÀY ---
-            // ta kiểm tra user qua guard 'sanctum'
             $user = auth('sanctum')->user(); 
 
             if ($user) {
-                // Nếu Token hợp lệ -> Lấy ID từ user tìm thấy
                 $userId = $user->id;
             } else {
-                // Nếu không có Token hoặc Token sai -> Là khách vãng lai
-                if (empty($sessionId)) {
-                    // Nếu Client không gửi session_id, Server tạo mới
-                    $sessionId = (string) Str::uuid();
-                }
+                if (empty($sessionId)) $sessionId = (string) Str::uuid();
             }
 
-            // 4. Kiểm tra xem sản phẩm này với size/color này đã có trong giỏ chưa
+            // 4. Kiểm tra giỏ hàng hiện tại
             $query = CartSession::where('product_id', $product->id)
                 ->where('size', $validated['size'])
-                ->where('color', $validated['color']);
+                ->where('color', $validated['color']); // Lưu ý: cart_sessions lưu cột 'color'
 
-            if ($userId) {
-                $query->where('user_id', $userId);
-            } else {
-                $query->where('session_id', $sessionId);
-            }
+            if ($userId) $query->where('user_id', $userId);
+            else $query->where('session_id', $sessionId);
 
             $cartItem = $query->first();
 
@@ -76,25 +71,21 @@ class CartController extends Controller
                 $newQuantity += $cartItem->quantity;
             }
 
-            // 6. Kiểm tra tồn kho (Product Quantity)
-            // Lưu ý: Nếu bạn quản lý tồn kho theo Size/Màu thì phải check bảng ProductVariant (nếu có)
-            // Ở đây check theo tổng quantity của Product như model bạn cung cấp
-            if ($product->quantity < $newQuantity) {
+            // Code mới: Check theo $variant->quantity
+            if ($variant->quantity < $newQuantity) {
                 return response()->json([
-                    'message' => 'Sản phẩm không đủ số lượng tồn kho.',
-                    'current_stock' => $product->quantity
+                    'message' => 'Sản phẩm chỉ còn ' . $variant->quantity . ' món cho phân loại này.',
+                    'current_stock' => $variant->quantity
                 ], 400);
             }
 
-            // 7. Lưu vào DB (Tạo mới hoặc Update)
+            // 6. Lưu vào DB (Giữ nguyên code của bạn)
             if ($cartItem) {
-                // Update
                 $cartItem->quantity = $newQuantity;
                 $cartItem->save();
             } else {
-                // Tạo mới
                 $cartItem = CartSession::create([
-                    'session_id' => $sessionId, // Có thể lưu cả session_id cho user đã login để tracking thiết bị
+                    'session_id' => $sessionId,
                     'user_id'    => $userId,
                     'product_id' => $validated['product_id'],
                     'quantity'   => $validated['quantity'],
@@ -110,7 +101,7 @@ class CartController extends Controller
                 'message' => 'Thêm vào giỏ hàng thành công',
                 'data' => [
                     'cart_item' => $cartItem,
-                    'session_id' => $sessionId // Trả lại session_id để Frontend lưu nếu là lần đầu tạo
+                    'session_id' => $sessionId 
                 ]
             ], 200);
 
@@ -118,7 +109,7 @@ class CartController extends Controller
             DB::rollBack();
             return response()->json([
                 'status' => 'error',
-                'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
+                'message' => 'Lỗi: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -148,11 +139,10 @@ class CartController extends Controller
         // 3. Query DB
         $query = CartSession::with([
             'product' => function ($q) {
-                // Chỉ lấy các trường cần thiết của product để nhẹ response
-                $q->select('id', 'name', 'slug', 'price', 'sale_price', 'status', 'quantity as stock_quantity', 'featured');
+                $q->select('id', 'name', 'slug', 'price', 'sale_price', 'status', 'featured'); 
             },
+            'product.variants', // Load toàn bộ variants để lọc trong memory (hoặc query cụ thể nếu muốn tối ưu hơn nữa)
             'product.images' => function ($q) {
-                // Lấy ảnh đại diện (giả sử bạn có logic lấy ảnh chính, hoặc lấy cái đầu tiên)
                 $q->limit(1); 
             }
         ]);
@@ -172,21 +162,34 @@ class CartController extends Controller
         // 4. Tính toán tổng tiền (Optional - tiện cho frontend)
         $totalPrice = 0;
         $formattedItems = $cartItems->map(function ($item) use (&$totalPrice) {
+            // Tìm variant tương ứng trong list variants đã load sẵn
+            // Logic này nhanh hơn là query DB trong vòng lặp
+            $variant = $item->product->variants->first(function ($v) use ($item) {
+                return $v->size === $item->size && $v->color_name === $item->color;
+            });
+
+            // Lấy tồn kho cụ thể của size/màu đó. Nếu lỗi data không tìm thấy thì cho bằng 0
+            $specificStock = $variant ? $variant->quantity : 0;
+
             // Logic giá: Ưu tiên giá sale
             $unitPrice = $item->product->sale_price > 0 ? $item->product->sale_price : $item->product->price;
             $lineTotal = $unitPrice * $item->quantity;
             $totalPrice += $lineTotal;
 
+            $unitPrice = $item->product->sale_price > 0 ? $item->product->sale_price : $item->product->price;
+            $lineTotal = $unitPrice * $item->quantity;
+            $totalPrice += $lineTotal;
+
             return [
-                'id' => $item->id, // ID của cart session (để dùng xóa)
+                'id' => $item->id,
                 'product_id' => $item->product_id,
                 'name' => $item->product->name,
                 'slug' => $item->product->slug,
-                'image' => $item->product->images->first()->image_path ?? null, // Sửa 'image_path' theo column thực tế của bạn
+                'image' => $item->product->main_image_url, 
                 'size' => $item->size,
                 'color' => $item->color,
                 'quantity' => $item->quantity,
-                'stock_quantity' => $item->product->stock_quantity,
+                'stock_quantity' => $specificStock, 
                 'unit_price' => $unitPrice,
                 'original_price' => $item->product->price,
                 'line_total' => $lineTotal,
@@ -242,6 +245,61 @@ class CartController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Đã xóa sản phẩm khỏi giỏ hàng'
+        ], 200);
+    }
+
+    /**
+     * Cập nhật số lượng sản phẩm trong giỏ (Tăng/Giảm từ giỏ hàng)
+     */
+    public function update(Request $request)
+    {
+        // 1. Validate
+        $request->validate([
+            'id'         => 'required|exists:cart_sessions,id', // ID của dòng trong cart_sessions
+            'quantity'   => 'required|integer|min:1',
+            'session_id' => 'nullable|string',
+        ]);
+
+        $user = auth('sanctum')->user();
+        
+        // 2. Tìm Cart Item
+        $cartItem = CartSession::find($request->id);
+
+        if (!$cartItem) {
+            return response()->json(['message' => 'Sản phẩm không tồn tại'], 404);
+        }
+
+        // 3. Check quyền sở hữu (Security)
+        $isOwner = false;
+        if ($user) {
+            if ($cartItem->user_id == $user->id) $isOwner = true;
+        } else {
+            if ($request->session_id && $cartItem->session_id == $request->session_id) $isOwner = true;
+        }
+
+        if (!$isOwner) {
+            return response()->json(['message' => 'Bạn không có quyền sửa sản phẩm này'], 403);
+        }
+
+        // 4. Check tồn kho
+        $variant = \App\Models\ProductVariant::where('product_id', $cartItem->product_id)
+            ->where('size', $cartItem->size)
+            ->where('color_name', $cartItem->color) // Map với cột color trong cart
+            ->first();
+
+        if ($variant && $variant->quantity < $request->quantity) {
+             return response()->json([
+                'message' => 'Kho chỉ còn ' . $variant->quantity . ' sản phẩm.',
+            ], 400);
+        }
+
+        // 5. Update
+        $cartItem->quantity = $request->quantity;
+        $cartItem->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Cập nhật giỏ hàng thành công'
         ], 200);
     }
 }

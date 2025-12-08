@@ -76,8 +76,7 @@
           <div class="products-grid">
             <div v-for="product in products" :key="product.id" class="product-card">
               <div class="product-image">
-                <img :src="product.images?.find(img => img.is_primary)?.image_path || '/placeholder.jpg'"
-                  :alt="product.name"
+                <img :src="getProductImage(product)" :alt="product.name"
                   @error="(e) => e.target.src = 'https://via.placeholder.com/300x300?text=No+Image'" />
                 <span v-if="product.featured" class="badge">Nổi bật</span>
               </div>
@@ -94,14 +93,14 @@
                 </div>
 
                 <div class="product-sizes">
-                  <span v-for="size in product.sizes?.slice(0, 5)" :key="size.id" class="size-tag">
-                    {{ size.size }}
+                  <span v-for="size in getProductSizes(product).slice(0, 5)" :key="size" class="size-tag">
+                    {{ size }}
                   </span>
                 </div>
 
                 <div class="product-colors">
-                  <div v-for="color in product.colors?.slice(0, 5)" :key="color.id" class="color-circle"
-                    :style="{ backgroundColor: color.color_code }" :title="color.color_name" />
+                  <div v-for="color in getProductColors(product).slice(0, 5)" :key="color.name || color.code"
+                    class="color-circle" :style="{ backgroundColor: color.code }" :title="color.name" />
                 </div>
 
                 <button class="detail-btn" @click="gotoDetail(product)">Xem chi tiết</button>
@@ -241,8 +240,13 @@ const fetchProducts = async (page = 1) => {
     // Trích xuất màu (Lưu ý: Chỉ lấy được màu của 20 sản phẩm hiện tại)
     const colors = new Set();
     data.data.forEach(product => {
-      product.colors?.forEach(color => {
-        colors.add(JSON.stringify({ name: color.color_name, code: color.color_code }));
+      product.variants?.forEach(variant => {
+        if (variant.color_name || variant.color_code) {
+          colors.add(JSON.stringify({
+            name: variant.color_name,
+            code: variant.color_code
+          }));
+        }
       });
     });
     // Chỉ cập nhật màu nếu chưa có (hoặc cập nhật lại tùy logic của bạn)
@@ -311,6 +315,52 @@ const formatPrice = (price) => {
     currency: 'VND'
   }).format(price);
 };
+// Ảnh chính của sản phẩm
+const getProductImage = (product) => {
+  // Nếu sau này API có field primary_image_url thì dùng luôn:
+  if (product.primary_image_url) return product.primary_image_url;
+
+  if (product.images && product.images.length) {
+    const main = product.images.find(img => img.is_primary) || product.images[0]
+    // Model ProductImage đã có accessor "url"
+    if (main.url) return main.url
+    // fallback: ghép path
+    if (main.image_path) return `/${main.image_path}`
+  }
+
+  return 'https://via.placeholder.com/300x300?text=No+Image'
+}
+
+// Lấy list size từ variants (unique)
+const getProductSizes = (product) => {
+  if (!product.variants || !product.variants.length) return []
+
+  const set = new Set()
+  product.variants.forEach(v => {
+    if (v.size) set.add(v.size)
+  })
+
+  return Array.from(set) // ['S','M','L', ...]
+}
+
+// Lấy list màu (unique theo color_name / color_code)
+const getProductColors = (product) => {
+  if (!product.variants || !product.variants.length) return []
+
+  const map = new Map()
+  product.variants.forEach(v => {
+    const key = v.color_name || v.color_code
+    if (!key) return
+    if (!map.has(key)) {
+      map.set(key, {
+        name: v.color_name,
+        code: v.color_code
+      })
+    }
+  })
+
+  return Array.from(map.values())  // [{name, code}, ...]
+}
 
 onMounted(() => {
   if (window.innerWidth > 1024) {
@@ -340,8 +390,10 @@ onMounted(() => {
 .layout {
   display: flex;
   gap: 0;
-  align-items: stretch; /* Thêm dòng này: Bắt buộc 2 cột cao bằng nhau */
+  align-items: stretch;
+  /* Thêm dòng này: Bắt buộc 2 cột cao bằng nhau */
 }
+
 /* --- SIDEBAR --- */
 .sidebar {
   width: 280px;
@@ -1093,4 +1145,3 @@ onMounted(() => {
   }
 }
 </style>
-    
