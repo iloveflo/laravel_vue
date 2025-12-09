@@ -13,6 +13,8 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ProductAdminController;
 use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\User\ProfileController;
+use App\Http\Controllers\User\OrderControllerr;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
@@ -87,6 +89,12 @@ Route::prefix('cart')->group(function () {
     Route::delete('/remove/{id}', [CartController::class, 'remove']);
 });
 
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::post('/update', [ProfileController::class, 'update']);
+});
 //route đặt hàng
 Route::get('/checkout/info', [CheckoutController::class, 'getCheckoutInfo']);
 //Route::post('/checkout/process', [CheckoutController::class, 'processCheckout']);
