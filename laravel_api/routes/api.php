@@ -14,8 +14,10 @@ use App\Http\Controllers\Admin\ProductAdminController;
 use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\User\ProfileController;
-use App\Http\Controllers\User\OrderControllerr;
+use App\Http\Controllers\User\OrderUserController;
+use App\Http\Controllers\Admin\CouponController;
 
+Route::get('/captcha', [AuthController::class, 'getCaptcha']);
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
 Route::post('/register', [AuthController::class, 'register']);
@@ -62,6 +64,9 @@ Route::middleware('auth:sanctum', 'admin')->prefix('admin')->group(function () {
     Route::post('/products/{product}/images', [ProductImageController::class, 'store']);
     Route::delete('/products/images/{image}', [ProductImageController::class, 'destroy']);
     Route::patch('/products/images/{image}/primary', [ProductImageController::class, 'setPrimary']);
+
+    //quản lý khuyến mại
+    Route::apiResource('coupons', CouponController::class);
 });
 
 //hiển thị sản phẩm
@@ -69,11 +74,15 @@ Route::get('/products/category/{slug}', [ProductController::class, 'getByCategor
 Route::get('/products', [ProductController::class, 'getAll']);
 Route::get('/products/{slug}', [ProductDetailsController::class, 'show']);//chi tiết sản phẩm
 
-
+//tài khoản khách hàng
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::post('/update', [ProfileController::class, 'update']);
 });
+
+//hiển thị đơn hàng
+Route::get('/orders', [OrderUserController::class, 'index']);
+Route::get('/orders/{code}', [OrderUserController::class, 'show']);
 
 // route giỏ hàng
 Route::prefix('cart')->group(function () {
@@ -81,6 +90,7 @@ Route::prefix('cart')->group(function () {
     Route::post('/add', [CartController::class, 'addToCart']);
     Route::put('/update', [CartController::class, 'update']);
     Route::delete('/remove/{id}', [CartController::class, 'remove']);
+    Route::post('/buy-again', [CartController::class, 'buyAgain']);
 });
 
 //route đặt hàng

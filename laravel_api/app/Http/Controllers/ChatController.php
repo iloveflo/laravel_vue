@@ -79,6 +79,17 @@ class ChatController extends Controller
             $products = [];
         }
 
+        // Kiểm tra xem session này đã chat bao nhiêu câu rồi
+        $count = ChatbotConversation::where('session_id', $sessionId)->count();
+        
+        // Nếu quá 20 câu, xóa 5 câu cũ nhất của session này
+        if ($count >= 20) {
+            ChatbotConversation::where('session_id', $sessionId)
+                ->orderBy('created_at', 'asc')
+                ->limit(5)
+                ->delete();
+        }
+
         // 8. Lưu DB
         $productsJson = (!empty($products) && count($products) > 0) ? json_encode($products) : null;
         $conversation->update([

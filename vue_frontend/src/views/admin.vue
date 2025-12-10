@@ -12,6 +12,7 @@
     <router-link to="/admin/quan-ly-nguoi-dung">Quản lý người dùng</router-link>
     <router-link to="/admin/quan-ly-san-pham">Quản lý sản phẩm</router-link>
     <router-link to="/admin/quan-ly-don-hang">Quản lý đơn hàng</router-link>
+    <router-link to="/admin/quan-ly-khuyen-mai">Quản lý khuyến mãi</router-link>
     <router-link to="/admin/thong-ke-bao-cao">Thống kê báo cáo</router-link>
 
     <div class="logout-wrap">

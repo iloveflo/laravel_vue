@@ -75,14 +75,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Quan hệ: User có thể viết nhiều News
-     */
-    public function news()
-    {
-        return $this->hasMany(News::class, 'author_id');
-    }
-
-    /**
      * Quan hệ: User có nhiều cart sessions
      */
     public function cartSessions()

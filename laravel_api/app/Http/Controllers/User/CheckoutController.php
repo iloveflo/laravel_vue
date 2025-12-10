@@ -298,6 +298,33 @@ class CheckoutController extends Controller
             CartSession::where('session_id', $request->session_id)->delete();
             DB::commit();
 
+            try {
+                // 1. Tạo link dựa trên URL của Backend hiện tại
+                // Hàm url() sẽ tự lấy domain trong file .env (APP_URL) hoặc domain request hiện tại
+                // Ví dụ kết quả: http://localhost:8000/user/orders
+                $trackingLink = url('/user/orders');
+
+                // 2. Logic phân loại khách hàng
+                if (!$user) {
+                    // Nếu là khách vãng lai -> Thêm session_id
+                    // Kết quả: http://localhost:8000/user/orders?session_id=...
+                    $trackingLink .= '?session_id=' . $request->session_id;
+                } 
+                
+                // 3. Gửi Mail
+                \Illuminate\Support\Facades\Mail::send('order_confirm', [
+                    'order'        => $order,
+                    'items'        => $orderItemsData,
+                    'trackingLink' => $trackingLink
+                ], function ($message) use ($order) {
+                    $message->to($order->email, $order->full_name)
+                            ->subject('Xác nhận đơn hàng #' . $order->order_code);
+                });
+
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Gửi mail thất bại: " . $e->getMessage());
+            }
+
             // 6. Response 
             if ($validatedData['payment_method'] === 'cod') {
                 return response()->json([

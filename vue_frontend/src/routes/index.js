@@ -17,8 +17,9 @@ import Search from '../views/search.vue'
 import Cart from '../views/user/cart.vue'
 import Profile from '../views/user/profile.vue'
 import Orders from '../views/user/orders.vue'
-import PaymentResult from '../views/PaymentResult.vue';
+import PaymentResult from '../views/PaymentResult.vue'
 import Review from '../views/user/review.vue'
+import OrderDetail from '../views/user/orderdetail.vue'
 
 // Products
 import Products from '../views/products/index.vue'
@@ -37,6 +38,7 @@ import QuanLyNguoiDung from '../views/admin/quanlynguoidung.vue'
 import QuanLySanPham from '../views/admin/quanlysanpham.vue'
 import QuanLyDonHang from '../views/admin/quanlydonhang.vue'
 import ThongKeBaoCao from '../views/admin/thongkebaocao.vue'
+import QuanLyKhuyenMai from '../views/admin/quanlykhuyenmai.vue'
 
 const routes = [
   {
@@ -133,6 +135,13 @@ const routes = [
         component: ProductDetails,
       },
 
+      // Order Detail
+      {
+        path : '/user/order/:order_code',
+        name : 'order-detail',
+        component : OrderDetail,
+      },
+
       // Review
       {
           path: '/reviews/:order_code', 
@@ -157,6 +166,7 @@ const routes = [
       { path: 'quan-ly-san-pham', component: QuanLySanPham },
       { path: 'quan-ly-don-hang', component: QuanLyDonHang },
       { path: 'thong-ke-bao-cao', component: ThongKeBaoCao },
+      { path: 'quan-ly-khuyen-mai', component: QuanLyKhuyenMai },
     ],
   },
 ]

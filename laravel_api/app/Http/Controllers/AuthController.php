@@ -16,6 +16,7 @@ use Carbon\Carbon;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Auth;
 use Exception;
+use Mews\Captcha\Facades\Captcha;
 
 class AuthController extends Controller
 {
@@ -24,18 +25,32 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
+        // 1. Validate dữ liệu đầu vào (Thêm check Captcha)
         $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string',
-            'rememberMe' => 'sometimes|boolean', // Thêm trường rememberMe
+            'email'      => 'required|email',
+            'password'   => 'required|string',
+            'rememberMe' => 'sometimes|boolean',
+
+            // Bắt buộc phải có key (nhận từ API /captcha)
+            'key'        => 'required|string',
+
+            // Rule đặc biệt của mews/captcha cho API
+            // Cú pháp: captcha_api:{KEY_GỬI_LÊN},{TÊN_CONFIG_TRONG_FILE_CAPTCHA.PHP}
+            'captcha'    => 'required|captcha_api:' . $request->key . ',default',
+        ], [
+            // Tùy chỉnh thông báo lỗi cho dễ hiểu
+            'captcha.required'    => 'Vui lòng nhập mã xác nhận.',
+            'captcha.captcha_api' => 'Mã xác nhận không chính xác.',
         ]);
 
+        // 2. Kiểm tra User tồn tại
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
             return response()->json(['message' => 'Sai thông tin đăng nhập'], 404);
         }
 
+        // 3. Kiểm tra Mật khẩu
         if (!Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Sai thông tin đăng nhập'], 401);
         }
@@ -44,19 +59,19 @@ class AuthController extends Controller
         $tokenName = 'auth-token';
         $token = $user->createToken($tokenName)->plainTextToken;
 
-        // --- Nếu rememberMe = true và user không phải admin, lưu remember_token ---
+        // --- Xử lý Remember Me (Giữ nguyên logic của bạn) ---
         if ($request->rememberMe && $user->role !== 'admin') {
             $user->remember_token = bin2hex(random_bytes(60));
             $user->save();
         }
 
+        // 4. Trả về kết quả
         return response()->json([
             'message' => 'Đăng nhập thành công',
-            'user' => $user,
-            'token' => $token,
+            'user'    => $user,
+            'token'   => $token,
         ], 200);
     }
-
     // Current authenticated user info
     public function me(Request $request)
     {
@@ -217,7 +232,7 @@ class AuthController extends Controller
         // Gửi email
         Mail::send('reset_password', ['link' => $resetLink], function ($message) use ($request) {
             $message->to($request->email)
-                    ->subject('Khôi phục mật khẩu - FLORENTIC');
+                ->subject('Khôi phục mật khẩu - FLORENTIC');
         });
 
         return response()->json(['message' => 'Email khôi phục đã được gửi'], 200);
@@ -238,7 +253,6 @@ class AuthController extends Controller
 
             $email = $data['email'];
             $token = $data['token'];
-
         } catch (\Exception $e) {
             return response()->json(['message' => 'Mã đặt lại mật khẩu không hợp lệ'], 400);
         }
@@ -348,7 +362,7 @@ class AuthController extends Controller
         // 3. Xây dựng URL để trả Token về cho Vue
         // Lưu ý: Nếu đang chạy Vue dev (localhost:5173), bạn cần sửa đường dẫn dưới đây
         // Nếu đã build vào Laravel thì để '/'
-        
+
         $frontendUrl = '/login'; // Hoặc 'http://localhost:5173/auth/callback'
 
         $queryParams = http_build_query([
@@ -364,7 +378,7 @@ class AuthController extends Controller
     // ==========================================
     // 3. HÀM XỬ LÝ LOGIC CHUNG (PRIVATE)
     // ==========================================
-    
+
     private function _registerOrLoginUser($socialUser, $provider)
     {
         // Xác định tên cột ID trong bảng users (google_id hoặc facebook_id)
@@ -395,14 +409,14 @@ class AuthController extends Controller
         }
 
         // TRƯỜNG HỢP 3: User hoàn toàn mới -> Tạo mới
-        
+
         // Tạo username tự động (vì Model của bạn yêu cầu username)
         // Logic: Lấy phần trước @ của email + số ngẫu nhiên để tránh trùng
         $baseUsername = explode('@', $socialUser->getEmail())[0];
         $newUsername = $baseUsername . rand(1000, 9999);
-        
+
         // Kiểm tra xem username đã tồn tại chưa, nếu có thì random lại (đơn giản hóa)
-        while(User::where('username', $newUsername)->exists()) {
+        while (User::where('username', $newUsername)->exists()) {
             $newUsername = $baseUsername . rand(1000, 9999);
         }
 
@@ -420,5 +434,21 @@ class AuthController extends Controller
         ]);
 
         return $newUser;
+    }
+
+    public function getCaptcha()
+    {
+        // Tham số thứ 2 là true => chế độ API
+        // 'default' là tên cấu hình trong file captcha.php (bạn có thể đổi thành 'flat', 'mini'...)
+        $data = Captcha::create('default', true);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Lấy captcha thành công',
+            'data' => [
+                'key' => $data['key'], // Key này cần gửi lại khi login
+                'img' => $data['img']  // Ảnh này gắn vào src của thẻ img ở Vue
+            ]
+        ]);
     }
 }

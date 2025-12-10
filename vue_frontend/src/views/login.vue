@@ -30,6 +30,24 @@
           />
         </div>
 
+        <div class="form-group">
+          <label class="form-label">MÃ XÁC NHẬN</label>
+          <div class="captcha-container">
+            <div class="captcha-box" v-if="captchaImg">
+               <img :src="captchaImg" alt="captcha" class="captcha-img" />
+            </div>
+            <button type="button" @click="fetchCaptcha" class="btn-reload" title="Đổi mã khác">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            </button>
+          </div>
+          <input 
+            type="text" 
+            v-model="captchaInput" 
+            required 
+            placeholder="Nhập các ký tự trong ảnh"
+            class="form-input mt-2"
+          />
+        </div>
         <div class="form-group checkbox-group">
           <label class="custom-checkbox">
             <input type="checkbox" v-model="rememberMe">
@@ -86,62 +104,72 @@ const password = ref('')
 const rememberMe = ref(false)
 const errorMessage = ref('')
 
+// --- BIẾN CHO CAPTCHA ---
+const captchaInput = ref('')
+const captchaImg = ref('') // Lưu chuỗi base64 của ảnh
+const captchaKey = ref('') // Lưu key định danh của ảnh đó
+
+// --- HÀM LẤY CAPTCHA MỚI ---
+const fetchCaptcha = async () => {
+  try {
+    const response = await axios.get('/captcha') // Gọi API backend
+    if (response.data.status) {
+        captchaImg.value = response.data.data.img
+        captchaKey.value = response.data.data.key
+        captchaInput.value = '' // Reset input cũ
+    }
+  } catch (error) {
+    console.error('Lỗi lấy captcha:', error)
+  }
+}
+
 onMounted(async () => {
-  // --- PHẦN 1: XỬ LÝ SOCIAL LOGIN (MỚI THÊM) ---
-  // Kiểm tra xem trên URL có token do Backend trả về không
+  // Lấy Captcha ngay khi load trang
+  await fetchCaptcha();
+
+  // --- PHẦN 1: XỬ LÝ SOCIAL LOGIN (GIỮ NGUYÊN) ---
   const params = new URLSearchParams(window.location.search)
   const socialToken = params.get('token')
   const socialRole = params.get('user_role')
   const socialEmail = params.get('user_email')
 
   if (socialToken) {
-    // 1. Lưu token vào localStorage
     localStorage.setItem('token', socialToken)
     if (socialEmail) localStorage.setItem('rememberedEmail', socialEmail)
-
-    // 2. Xóa sạch token trên thanh địa chỉ để bảo mật và nhìn cho đẹp
     window.history.replaceState({}, document.title, window.location.pathname)
 
-    // 3. Chuyển hướng ngay lập tức
     if (socialRole === 'admin') {
       window.location.href = '/admin'
     } else {
       window.location.href = '/'
     }
-    return; // Dừng code tại đây, không chạy phần dưới nữa
+    return;
   }
 
-  // --- PHẦN 2: KIỂM TRA ĐĂNG NHẬP CŨ ---
+  // --- PHẦN 2: KIỂM TRA ĐĂNG NHẬP CŨ (GIỮ NGUYÊN) ---
   const token = localStorage.getItem('token')
   const remembered = localStorage.getItem('rememberedEmail')
 
   if (token) {
     try {
-      // Gọi API check user
       const res = await axios.get('/me', {
         headers: { Authorization: `Bearer ${token}` }
       })
       const currentUser = res.data.user
-
-      // Nếu token vẫn còn sống -> Redirect luôn, không cho ở lại trang login nữa
       if (currentUser.role === 'admin') {
         window.location.href = '/admin'
       } else {
-        window.location.href = '/' // User thường cũng đẩy về trang chủ luôn
+        window.location.href = '/'
       }
     } catch (err) {
-      // Token hết hạn hoặc lỗi -> Xóa token và cho phép nhập lại pass
       console.log('Phiên đăng nhập hết hạn:', err)
       localStorage.removeItem('token')
-      
-      // Auto-fill email nếu có nhớ
       if (remembered) {
         email.value = remembered
         rememberMe.value = true
       }
     }
   } else if (remembered) {
-    // Chưa có token nhưng có nhớ email -> Auto-fill
     email.value = remembered
     rememberMe.value = true
   }
@@ -151,25 +179,25 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
+    // Gửi thêm captcha và key lên server
     const response = await axios.post('/login', {
       email: email.value,
       password: password.value,
+      captcha: captchaInput.value, // User nhập
+      key: captchaKey.value,       // Key từ server
       rememberMe: rememberMe.value,
     })
 
     const userRole = response.data.user.role
 
-    // Lưu token
     localStorage.setItem('token', response.data.token)
 
-    // Chỉ lưu rememberedEmail nếu user chọn ghi nhớ
     if (rememberMe.value && userRole !== 'admin') {
       localStorage.setItem('rememberedEmail', email.value)
     } else {
       localStorage.removeItem('rememberedEmail')
     }
 
-    // Redirect
     if (userRole === 'admin') {
       window.location.href = '/admin'
     } else {
@@ -178,19 +206,26 @@ const handleLogin = async () => {
 
   } catch (error) {
     console.error('Login error:', error)
-    if (error.response?.data?.message) {
+    
+    // Nếu lỗi, nên reload lại captcha mới ngay để tránh user nhập lại mã cũ (thường mã chỉ dùng 1 lần)
+    fetchCaptcha(); 
+    
+    // Xử lý thông báo lỗi
+    if (error.response?.data?.errors?.captcha) {
+         // Lỗi riêng cho captcha (nếu backend trả về dạng errors array)
+         errorMessage.value = error.response.data.errors.captcha[0];
+    } else if (error.response?.data?.message) {
       errorMessage.value = error.response.data.message
     } else {
-      errorMessage.value = 'Đăng nhập thất bại. Vui lòng kiểm tra email và mật khẩu.'
+      errorMessage.value = 'Đăng nhập thất bại. Vui lòng kiểm tra lại.'
     }
   }
 }
-// Hàm gọi Login Google
+
 const loginWithGoogle = () => {
   window.location.href = `/auth/google`;
 }
 
-// Hàm gọi Login Facebook
 const loginWithFacebook = () => {
   window.location.href = `/auth/facebook`;
 }
@@ -512,5 +547,52 @@ const loginWithFacebook = () => {
 }
 .btn-register-link:hover {
   text-decoration: underline;
+}
+
+/* CSS CHO PHẦN CAPTCHA */
+.mt-2 {
+    margin-top: 10px;
+}
+.captcha-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.captcha-box {
+    flex-grow: 1;
+    background: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+    height: 40px; /* Khớp với height config backend */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.captcha-img {
+    height: 100%;
+    width: auto;
+    display: block;
+}
+
+.btn-reload {
+    background: #ececec;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #555;
+}
+
+.btn-reload:hover {
+    background: #e0e0e0;
+    color: #000;
 }
 </style>
