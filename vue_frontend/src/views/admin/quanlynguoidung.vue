@@ -38,7 +38,7 @@
         <template v-if="selectedUser.role === 'user'">
         <div>
           <p>Tổng đơn hàng: {{ stats.total_orders }}</p>
-          <p>Tổng giá trị đơn hàng: {{ stats.total_order_value }}</p>
+          <p>Tổng giá trị đơn hàng: {{ Math.round(stats.total_order_value) }} VNĐ</p>
           <p>Số đánh giá: {{ stats.total_reviews }}</p>
         </div>
         </template>
@@ -152,7 +152,7 @@
             </template>
             <template v-else-if="user.email !== 'admin@example.com'">
               <!-- show edit for normal users; for admin rows only show if current is super-admin -->
-              <button v-if="user.role !== 'admin' || isSuperAdmin" @click="viewUser(user.id)">Xem / Sửa</button>
+              <button v-if="user.role !== 'admin' || isSuperAdmin" @click="viewUser(user.id)">Xem chi tiết</button>
               <button v-if="user.role === 'admin' && isSuperAdmin" @click="deleteUser(user.id)" class="text-red-600">Xóa</button>
             </template>
           </td>
@@ -207,7 +207,6 @@ export default {
       })
       users.value = res.data
     }
-
     const performSearch = () => {
       // when user triggers a search, reset to first page
       currentPage.value = 1

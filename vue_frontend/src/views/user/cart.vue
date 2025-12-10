@@ -119,9 +119,13 @@
                 <label>Phương thức thanh toán:</label>
                 <select v-model="form.payment_method">
                   <option value="cod">Thanh toán khi nhận hàng (COD)</option>
-                  <option value="banking">Chuyển khoản ngân hàng</option>
-                  <option value="vnpay">VNPAY</option>
+                  <option value="vnpay">Thanh toán VNPAY</option>
                 </select>
+              </div>
+
+              <div class="form-group">
+                <label>Ghi chú đơn hàng:</label>
+                <textarea v-model="form.note" placeholder="Giao hàng bao giờ..."></textarea>
               </div>
 
               <div class="form-actions">
@@ -399,33 +403,59 @@ const handleCheckoutClick = async () => {
 // 5. Submit form "Xác nhận thanh toán"
 const submitOrder = async () => {
   if (cartItems.value.length === 0) {
-    showNotification('Giỏ hàng trống!'); // <--- THAY ALERT
+    showNotification('Giỏ hàng trống!');
     return;
   }
 
   isProcessing.value = true;
   try {
+    // --- [SỬA ĐỔI 1]: Bổ sung dữ liệu còn thiếu ---
     const payload = {
-      ...form.value,
-      session_id: getSessionId()
+      ...form.value, // Gồm: full_name, email, phone, address, payment_method...
+      session_id: getSessionId(),
+      
+      // Gửi thêm tổng tiền (Dù backend sẽ tính lại để bảo mật, nhưng vẫn cần gửi để đối chiếu)
+      total_amount: clientTotal.value, 
+
+      // Gửi danh sách sản phẩm (chỉ lấy những trường cần thiết để gọn nhẹ)
+      items: cartItems.value.map(item => ({
+        id: item.product_id,       // Product ID
+        quantity: item.quantity,
+        size: item.size,
+        color: item.color,
+        price: item.unit_price // Giá tại thời điểm mua
+      }))
     };
 
     const response = await axios.post('/checkout/process', payload, { headers: getHeaders() });
 
     if (response.data.success) {
-      showNotification('Đặt hàng thành công!'); // <--- THAY ALERT
+      
+      // --- [SỬA ĐỔI 2]: Xử lý Logic SePay / COD ---
+      
+     if (form.value.payment_method === 'vnpay' && response.data.payment_url) {
+        // Redirect sang trang VNPAY Sandbox
+        window.location.href = response.data.payment_url;
+        return;
+      }
+      
+      // Nếu là COD hoặc thành công bình thường
+      showNotification('Đặt hàng thành công!');
       showCheckoutForm.value = false;
+      
+      // Reset giỏ hàng
       cartItems.value = [];
       summary.value = { total_items: 0, total_price: 0 };
+      
       window.dispatchEvent(new Event('cart-updated'));
     }
+
   } catch (error) {
     console.error("Lỗi đặt hàng:", error);
     if (error.response && error.response.data.errors) {
-      // Có thể dùng loop để lấy lỗi chi tiết hơn nếu muốn
-      showNotification('Vui lòng kiểm tra lại thông tin nhập vào.'); // <--- THAY ALERT
+      showNotification('Vui lòng kiểm tra lại thông tin nhập vào.');
     } else {
-      showNotification('Có lỗi xảy ra, vui lòng thử lại sau.'); // <--- THAY ALERT
+      showNotification(error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại sau.');
     }
   } finally {
     isProcessing.value = false;

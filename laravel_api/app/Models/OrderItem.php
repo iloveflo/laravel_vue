@@ -57,4 +57,25 @@ class OrderItem extends Model
     {
         return $this->hasMany(Review::class, 'order_id');
     }
+
+    // 1. Tự động thêm field 'product_image_url' vào JSON
+    protected $appends = ['product_image_url'];
+
+    // 2. Định nghĩa logic tạo URL đầy đủ
+    public function getProductImageUrlAttribute()
+    {
+        // Nếu trong DB chưa có ảnh, trả về ảnh lỗi
+        if (!$this->product_image) {
+            return asset('images/placeholder.png');
+        }
+
+        // Nếu dữ liệu cũ lỡ lưu cả http:// rồi thì trả về luôn
+        if (filter_var($this->product_image, FILTER_VALIDATE_URL)) {
+            return $this->product_image;
+        }
+
+        // Nối domain vào đường dẫn tương đối
+        return asset($this->product_image);
+    }
 }
+

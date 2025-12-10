@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProductRequest;
 use App\Models\Product;
-use App\Models\ProductVariant;
+// use App\Models\ProductVariant; // không dùng trực tiếp, có thể bỏ
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -59,23 +59,22 @@ class ProductAdminController extends Controller
         unset($data['variants']);
 
         // Tạo slug & SKU nếu chưa có
-        $data['slug']     = Str::slug($data['name']);
-        $data['sku']      = $data['sku'] ?? strtoupper(Str::random(8));
+        $data['slug'] = Str::slug($data['name']);
+        $data['sku']  = $data['sku'] ?? strtoupper(Str::random(8));
 
-        // THÊM DÒNG NÀY: nếu không có cost_price thì cho = price
+        // Nếu không có cost_price thì cho = price
         if (!isset($data['cost_price']) || $data['cost_price'] === null) {
             $data['cost_price'] = $data['price'];
         }
 
-        // Quantity tổng sẽ cộng từ variants
-        $data['quantity'] = 0;
+        // ❌ KHÔNG còn $data['quantity'] vì bảng products không có cột này nữa
 
+        // Tạo sản phẩm
         $product = Product::create($data);
 
         // Tạo biến thể
-        $totalQty = 0;
         foreach ($variants as $variant) {
-            $v = $product->variants()->create([
+            $product->variants()->create([
                 'color_name'       => $variant['color_name'] ?? '',
                 'color_code'       => $variant['color_code'] ?? null,
                 'size'             => $variant['size'],
@@ -83,12 +82,9 @@ class ProductAdminController extends Controller
                 'quantity'         => $variant['quantity'] ?? 0,
                 'additional_price' => $variant['additional_price'] ?? 0,
             ]);
-
-            $totalQty += $v->quantity;
         }
 
-        // Cập nhật lại quantity tổng trên bảng products
-        $product->update(['quantity' => $totalQty]);
+        // ❌ Không cập nhật quantity trên bảng products nữa
 
         return response()->json([
             'message' => 'Thêm sản phẩm thành công!',
@@ -96,21 +92,19 @@ class ProductAdminController extends Controller
         ], 201);
     }
 
-
     // GET /api/admin/products/{id}
     public function show($id)
     {
         $product = Product::with([
             'category',
             'images',
-            'mainImage',   
+            'mainImage',
             'variants',
         ])->findOrFail($id);
 
         return response()->json($product);
     }
 
-    // PUT /api/admin/products/{id}
     // PUT /api/admin/products/{id}
     public function update(ProductRequest $request, $id)
     {
@@ -125,19 +119,19 @@ class ProductAdminController extends Controller
         // Giữ SKU gốc, không cho sửa trong form này
         unset($data['sku']);
 
-        // ⭐ Nếu không gửi cost_price thì giữ cost_price cũ (hoặc = price mới)
+        // Nếu không gửi cost_price thì giữ cost_price cũ (hoặc = price mới)
         if (!isset($data['cost_price']) || $data['cost_price'] === null) {
             $data['cost_price'] = $product->cost_price ?? $data['price'] ?? $product->price;
         }
 
+        // Cập nhật sản phẩm
         $product->update($data);
 
         // Clear variants cũ và tạo lại
         $product->variants()->delete();
 
-        $totalQty = 0;
         foreach ($variants as $variant) {
-            $v = $product->variants()->create([
+            $product->variants()->create([
                 'color_name'       => $variant['color_name'] ?? '',
                 'color_code'       => $variant['color_code'] ?? null,
                 'size'             => $variant['size'],
@@ -145,18 +139,15 @@ class ProductAdminController extends Controller
                 'quantity'         => $variant['quantity'] ?? 0,
                 'additional_price' => $variant['additional_price'] ?? 0,
             ]);
-
-            $totalQty += $v->quantity;
         }
 
-        $product->update(['quantity' => $totalQty]);
+        // ❌ Không cập nhật quantity trên bảng products nữa
 
         return response()->json([
             'message' => 'Cập nhật sản phẩm thành công',
             'data'    => $product->load('category', 'variants'),
         ]);
     }
-
 
     // DELETE /api/admin/products/{id}
     public function destroy($id)

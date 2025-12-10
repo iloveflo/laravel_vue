@@ -32,6 +32,12 @@ export default defineConfig({
         target: 'http://localhost:8000', // địa chỉ Laravel
         changeOrigin: true,
         secure: false,
+      },
+
+      '/auth': {
+        target: 'http://localhost:8000', // địa chỉ Laravel
+        changeOrigin: true,
+        secure: false,
       }
     }
   },

@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Auth;
+use Exception;
 
 class AuthController extends Controller
 {
@@ -270,4 +273,152 @@ class AuthController extends Controller
         return response()->json(['message' => 'Đặt mật khẩu thành công'], 200);
     }
 
+    // --- Hàm xử lý chung để tạo Token giống hệt logic Login của bạn ---
+    private function generateTokenAndUser($user, $rememberMe = false)
+    {
+        // 1. Tạo Token Sanctum
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        // 2. Logic Remember Me giống của bạn (dành cho User thường)
+        if ($rememberMe && $user->role !== 'admin') {
+            $user->forceFill([
+                'remember_token' => bin2hex(random_bytes(60)),
+            ])->save();
+        }
+
+        return [
+            'message' => 'Đăng nhập thành công',
+            'user' => $user,
+            'token' => $token,
+        ];
+    }
+
+    // Chuyển hướng người dùng sang Google
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    // Xử lý khi Google gọi lại (Callback)
+    // --- CALLBACK GOOGLE ---
+    public function handleGoogleCallback()
+    {
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
+            return $this->handleSocialCallback($googleUser, 'google');
+        } catch (Exception $e) {
+            dd($e->getMessage());
+            // Redirect về trang login của Vue kèm thông báo lỗi trên URL
+            return redirect('/login?error=' . urlencode('Đăng nhập Google thất bại'));
+        }
+    }
+
+    // ==========================================
+    // 2. FACEBOOK LOGIN
+    // ==========================================
+
+    // Chuyển hướng người dùng sang Facebook
+    public function redirectToFacebook()
+    {
+        return Socialite::driver('facebook')->redirect();
+    }
+
+    // Xử lý khi Facebook gọi lại (Callback)
+    public function handleFacebookCallback()
+    {
+        try {
+            $facebookUser = Socialite::driver('facebook')->stateless()->user();
+            return $this->handleSocialCallback($facebookUser, 'facebook');
+        } catch (Exception $e) {
+            dd($e->getMessage());
+            return redirect('/login?error=' . urlencode('Đăng nhập Facebook thất bại'));
+        }
+    }
+
+    // --- LOGIC XỬ LÝ CHUNG CHO SOCIAL ---
+    private function handleSocialCallback($socialUser, $provider)
+    {
+        // 1. Tìm hoặc tạo user
+        $user = $this->_registerOrLoginUser($socialUser, $provider);
+
+        // 2. Tạo Token (Tái sử dụng logic của hàm Login)
+        // Mặc định social login coi như là có rememberMe = true
+        $authData = $this->generateTokenAndUser($user, true);
+
+        // 3. Xây dựng URL để trả Token về cho Vue
+        // Lưu ý: Nếu đang chạy Vue dev (localhost:5173), bạn cần sửa đường dẫn dưới đây
+        // Nếu đã build vào Laravel thì để '/'
+        
+        $frontendUrl = '/login'; // Hoặc 'http://localhost:5173/auth/callback'
+
+        $queryParams = http_build_query([
+            'token' => $authData['token'],
+            'user_role' => $user->role,
+            'user_email' => $user->email,
+            'login_success' => 'true'
+        ]);
+
+        return redirect($frontendUrl . '?' . $queryParams);
+    }
+
+    // ==========================================
+    // 3. HÀM XỬ LÝ LOGIC CHUNG (PRIVATE)
+    // ==========================================
+    
+    private function _registerOrLoginUser($socialUser, $provider)
+    {
+        // Xác định tên cột ID trong bảng users (google_id hoặc facebook_id)
+        $providerIdField = $provider . '_id';
+
+        // TRƯỜNG HỢP 1: User đã từng đăng nhập bằng Mạng xã hội này rồi
+        $existingUser = User::where($providerIdField, $socialUser->getId())->first();
+
+        if ($existingUser) {
+            // Cập nhật lại avatar và tên mới nhất (nếu muốn)
+            $existingUser->update([
+                'avatar' => $socialUser->getAvatar(),
+            ]);
+            return $existingUser;
+        }
+
+        // TRƯỜNG HỢP 2: Chưa đăng nhập bằng MXH này, nhưng Email đã tồn tại trong hệ thống
+        // (Ví dụ: Đã đăng ký bằng tay, giờ muốn login bằng Google cùng email đó)
+        $existingUserByEmail = User::where('email', $socialUser->getEmail())->first();
+
+        if ($existingUserByEmail) {
+            // Cập nhật thêm ID của mạng xã hội vào user cũ
+            $existingUserByEmail->update([
+                $providerIdField => $socialUser->getId(),
+                'email_verified_at' => now(), // Tin tưởng email từ Google/FB là đã xác thực
+            ]);
+            return $existingUserByEmail;
+        }
+
+        // TRƯỜNG HỢP 3: User hoàn toàn mới -> Tạo mới
+        
+        // Tạo username tự động (vì Model của bạn yêu cầu username)
+        // Logic: Lấy phần trước @ của email + số ngẫu nhiên để tránh trùng
+        $baseUsername = explode('@', $socialUser->getEmail())[0];
+        $newUsername = $baseUsername . rand(1000, 9999);
+        
+        // Kiểm tra xem username đã tồn tại chưa, nếu có thì random lại (đơn giản hóa)
+        while(User::where('username', $newUsername)->exists()) {
+            $newUsername = $baseUsername . rand(1000, 9999);
+        }
+
+        // Tạo user mới
+        $newUser = User::create([
+            'email' => $socialUser->getEmail(),
+            'full_name' => $socialUser->getName() ?? $newUsername, // Google/FB có thể trả về null name
+            'username' => $newUsername,
+            'password' => Hash::make(Str::random(16)), // Tạo mật khẩu ngẫu nhiên bảo mật
+            $providerIdField => $socialUser->getId(),
+            'avatar' => $socialUser->getAvatar(),
+            'role' => 'user', // Mặc định role là khách hàng
+            'email_verified_at' => now(),
+            // Các trường khác như phone, address để null hoặc default
+        ]);
+
+        return $newUser;
+    }
 }

@@ -42,9 +42,32 @@
 
         <button type="submit" class="btn-submit">ĐĂNG NHẬP</button>
 
-        <div class="divider-text">HOẶC</div>
+        <div class="divider-text">HOẶC TIẾP TỤC VỚI</div>
 
-        <router-link to="/register" class="btn-register">Đăng ký</router-link>
+        <div class="social-login-group">
+          <button type="button" @click="loginWithGoogle" class="btn-social btn-google">
+            <svg class="social-icon" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+              <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
+                <path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"/>
+                <path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.059 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"/>
+                <path fill="#FBBC05" d="M -21.484 53.529 C -21.734 52.769 -21.864 51.959 -21.864 51.129 C -21.864 50.299 -21.734 49.489 -21.484 48.729 L -21.484 45.639 L -25.464 45.639 C -26.284 47.269 -26.754 49.129 -26.754 51.129 C -26.754 53.129 -26.284 54.989 -25.464 56.619 L -21.484 53.529 Z"/>
+                <path fill="#EA4335" d="M -14.754 43.769 C -12.984 43.769 -11.404 44.379 -10.154 45.579 L -6.714 42.139 C -8.804 40.189 -11.514 39.019 -14.754 39.019 C -19.444 39.019 -23.494 41.719 -25.464 45.639 L -21.484 48.729 C -20.534 45.879 -17.884 43.769 -14.754 43.769 Z"/>
+              </g>
+            </svg>
+            <span>Google</span>
+          </button>
+
+          <button type="button" @click="loginWithFacebook" class="btn-social btn-facebook">
+            <svg class="social-icon" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+              <path fill="#ffffff" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+            <span>Facebook</span>
+          </button>
+        </div>
+        <div class="footer-links">
+           <span class="no-account-text">Chưa có tài khoản?</span>
+           <router-link to="/register" class="btn-register-link">Đăng ký ngay</router-link>
+        </div>
         
       </form>
     </div>
@@ -63,38 +86,62 @@ const password = ref('')
 const rememberMe = ref(false)
 const errorMessage = ref('')
 
-// Nếu lần trước có lưu email, auto-fill cho user thường
 onMounted(async () => {
+  // --- PHẦN 1: XỬ LÝ SOCIAL LOGIN (MỚI THÊM) ---
+  // Kiểm tra xem trên URL có token do Backend trả về không
+  const params = new URLSearchParams(window.location.search)
+  const socialToken = params.get('token')
+  const socialRole = params.get('user_role')
+  const socialEmail = params.get('user_email')
+
+  if (socialToken) {
+    // 1. Lưu token vào localStorage
+    localStorage.setItem('token', socialToken)
+    if (socialEmail) localStorage.setItem('rememberedEmail', socialEmail)
+
+    // 2. Xóa sạch token trên thanh địa chỉ để bảo mật và nhìn cho đẹp
+    window.history.replaceState({}, document.title, window.location.pathname)
+
+    // 3. Chuyển hướng ngay lập tức
+    if (socialRole === 'admin') {
+      window.location.href = '/admin'
+    } else {
+      window.location.href = '/'
+    }
+    return; // Dừng code tại đây, không chạy phần dưới nữa
+  }
+
+  // --- PHẦN 2: KIỂM TRA ĐĂNG NHẬP CŨ ---
   const token = localStorage.getItem('token')
   const remembered = localStorage.getItem('rememberedEmail')
 
   if (token) {
     try {
-      // Lấy thông tin người dùng hiện tại
+      // Gọi API check user
       const res = await axios.get('/me', {
         headers: { Authorization: `Bearer ${token}` }
       })
       const currentUser = res.data.user
 
-      // Nếu là admin → redirect thẳng
+      // Nếu token vẫn còn sống -> Redirect luôn, không cho ở lại trang login nữa
       if (currentUser.role === 'admin') {
         window.location.href = '/admin'
-        return
+      } else {
+        window.location.href = '/' // User thường cũng đẩy về trang chủ luôn
       }
-
-      // Nếu là user thường → auto-fill remembered email
+    } catch (err) {
+      // Token hết hạn hoặc lỗi -> Xóa token và cho phép nhập lại pass
+      console.log('Phiên đăng nhập hết hạn:', err)
+      localStorage.removeItem('token')
+      
+      // Auto-fill email nếu có nhớ
       if (remembered) {
         email.value = remembered
         rememberMe.value = true
       }
-
-    } catch (err) {
-      console.log('Không thể lấy thông tin user:', err)
-      localStorage.removeItem('token')
-      localStorage.removeItem('rememberedEmail')
     }
   } else if (remembered) {
-    // Nếu chưa có token nhưng có rememberedEmail → auto-fill
+    // Chưa có token nhưng có nhớ email -> Auto-fill
     email.value = remembered
     rememberMe.value = true
   }
@@ -115,14 +162,14 @@ const handleLogin = async () => {
     // Lưu token
     localStorage.setItem('token', response.data.token)
 
-    // Chỉ lưu rememberedEmail nếu không phải admin
-    if (userRole !== 'admin' && rememberMe.value) {
+    // Chỉ lưu rememberedEmail nếu user chọn ghi nhớ
+    if (rememberMe.value && userRole !== 'admin') {
       localStorage.setItem('rememberedEmail', email.value)
     } else {
       localStorage.removeItem('rememberedEmail')
     }
 
-    // Redirect + reload
+    // Redirect
     if (userRole === 'admin') {
       window.location.href = '/admin'
     } else {
@@ -137,6 +184,15 @@ const handleLogin = async () => {
       errorMessage.value = 'Đăng nhập thất bại. Vui lòng kiểm tra email và mật khẩu.'
     }
   }
+}
+// Hàm gọi Login Google
+const loginWithGoogle = () => {
+  window.location.href = `/auth/google`;
+}
+
+// Hàm gọi Login Facebook
+const loginWithFacebook = () => {
+  window.location.href = `/auth/facebook`;
 }
 </script>
 
@@ -367,5 +423,94 @@ const handleLogin = async () => {
   text-align: center;
   font-weight: 600;
   text-transform: uppercase;
+}
+
+/* CSS cho Group chứa nút Social */
+.social-login-group {
+  display: flex;
+  gap: 15px; /* Khoảng cách giữa 2 nút */
+  margin-bottom: 25px;
+}
+
+/* Style chung cho nút Social */
+.btn-social {
+  flex: 1; /* Để 2 nút dài bằng nhau */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background-color: white;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.social-icon {
+  margin-right: 8px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Style riêng cho Google */
+.btn-google {
+  color: #3c4043;
+}
+.btn-google:hover {
+  background-color: #f8f9fa;
+  border-color: #c1c1c1;
+}
+
+/* Style riêng cho Facebook */
+.btn-facebook {
+  background-color: #1877F2;
+  color: white;
+  border: 1px solid #1877F2;
+}
+.btn-facebook:hover {
+  background-color: #166fe5;
+}
+.btn-facebook .social-icon path {
+  fill: white;
+}
+
+
+/* Tạo đường gạch ngang 2 bên chữ HOẶC */
+.divider-text::before,
+.divider-text::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: #e0e0e0;
+}
+.divider-text::before {
+  margin-right: 10px;
+}
+.divider-text::after {
+  margin-left: 10px;
+}
+
+/* Phần Footer (Đăng ký) */
+.footer-links {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.no-account-text {
+  color: #666;
+  margin-right: 5px;
+}
+
+.btn-register-link {
+  color: #007bff; /* Thay bằng màu chủ đạo của web bạn */
+  font-weight: bold;
+  text-decoration: none;
+}
+.btn-register-link:hover {
+  text-decoration: underline;
 }
 </style>

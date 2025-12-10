@@ -157,7 +157,7 @@
           <div class="md:col-span-2 space-y-4">
             <h4 class="font-semibold text-gray-700 border-b pb-2">Sản phẩm</h4>
             <div v-for="item in selectedOrder.order_items || []" :key="item.id" class="flex items-center gap-4 border p-2 rounded-lg">
-              <img :src="item.product_image || '/placeholder.png'" 
+              <img :src="item.product_image_url || '/placeholder.png'" 
                   class="w-16 h-16 object-cover rounded border">
               <div class="flex-1">
                 <div class="font-bold text-sm">{{ item.product_name }}</div>
@@ -502,14 +502,17 @@ const changePage = async (page) => {
   if (!page || page < 1 || page > orders.value.last_page) return;
   
   try {
-    const params = new URLSearchParams({
+    const params = {
       page: page,
-      status: filters.value.status,
-      payment_status: filters.value.payment_status,
-      search: filters.value.search
-    });
+      status: filters.status, 
+      payment_method: filters.payment_method, 
+      search: filters.search,
+      date_from: filters.date_from, // Nên thêm nếu có lọc ngày
+      date_to: filters.date_to      // Nên thêm nếu có lọc ngày
+    };
     
-    const response = await axios.get(`/admin/orders?${params}`);
+    // Axios tự động serialize object params, không cần dùng URLSearchParams thủ công
+    const response = await axios.get('/admin/orders', { params });
     orders.value = response.data;
     
     // Scroll lên đầu trang

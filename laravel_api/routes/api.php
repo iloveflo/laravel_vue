@@ -9,10 +9,12 @@ use App\Http\Controllers\Product\ProductDetailsController;
 use App\Http\Controllers\User\CartController;
 use App\Http\Controllers\User\CheckoutController;
 use App\Http\Controllers\Admin\StatisticsController;
-use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Admin\ProductAdminController;
 use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\User\ProfileController;
+use App\Http\Controllers\User\OrderControllerr;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
@@ -46,7 +48,7 @@ Route::middleware('auth:sanctum', 'admin')->prefix('admin')->group(function () {
     Route::get('/statistics/order-status-distribution', [StatisticsController::class, 'getOrderStatusDistribution']); // Dành cho biểu đồ tròn trạng thái đơn hàng
     Route::get('/statistics/top-selling-products', [StatisticsController::class, 'getTopSellingProducts']); // Dành cho top selling
     Route::get('/statistics/recent-activities', [StatisticsController::class, 'getRecentActivities']); // Lấy danh sách đơn hàng mới, sản phẩm sắp hết hàng
-    Route::post('/statistics/export', [StatisticsController::class, 'exportReport']);   // Export dữ liệu
+    Route::get('/statistics/export', [StatisticsController::class, 'exportReport']);   // Export dữ liệu
 
     // quản lý sản phẩm
     Route::get('/products/categories', [CategoryController::class, 'index']);
@@ -62,25 +64,19 @@ Route::middleware('auth:sanctum', 'admin')->prefix('admin')->group(function () {
     Route::patch('/products/images/{image}/primary', [ProductImageController::class, 'setPrimary']);
 });
 
-// Routes for reports
-Route::middleware(['auth:sanctum'])->prefix('admin/reports')->group(function () {
-    Route::get('/dashboard', [ReportController::class, 'dashboard']);
-    Route::get('/top-products', [ReportController::class, 'topProducts']);
-    Route::get('/by-category', [ReportController::class, 'byCategory']);
-    Route::get('/sales-trend', [ReportController::class, 'salesTrend']);
-    Route::get('/export', [ReportController::class, 'export']);
-});
-
 //hiển thị sản phẩm
 Route::get('/products/category/{slug}', [ProductController::class, 'getByCategory']);
 Route::get('/products', [ProductController::class, 'getAll']);
+Route::get('/products/{slug}', [ProductDetailsController::class, 'show']);//chi tiết sản phẩm
 
-//chi tiết sản phẩm
-Route::get('/products/{slug}', [ProductDetailsController::class, 'show']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::post('/update', [ProfileController::class, 'update']);
+});
 
 // route giỏ hàng
 Route::prefix('cart')->group(function () {
-
     Route::get('/', [CartController::class, 'index']);
     Route::post('/add', [CartController::class, 'addToCart']);
     Route::put('/update', [CartController::class, 'update']);
@@ -89,4 +85,13 @@ Route::prefix('cart')->group(function () {
 
 //route đặt hàng
 Route::get('/checkout/info', [CheckoutController::class, 'getCheckoutInfo']);
-//Route::post('/checkout/process', [CheckoutController::class, 'processCheckout']);
+Route::post('/checkout/process', [CheckoutController::class, 'processCheckout']);
+Route::get('/payment/vnpay-callback', [CheckoutController::class, 'vnpayCallback']);
+
+//đánh giá
+Route::get('/orders/{order_code}/review-info', [OrderController::class, 'getReviewInfo']);
+Route::post('/reviews', [OrderController::class, 'storeReviews']);
+
+//AI
+Route::post('/chat', [ChatController::class, 'sendMessage']);
+Route::get('/chat/history', [ChatController::class, 'getHistory']);

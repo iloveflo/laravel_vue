@@ -74,23 +74,43 @@ class Product extends Model
      * Lấy URL ảnh chính
      * Gọi bằng: $product->main_image_url
      */
+    // 1. Attribute trả về đường dẫn TƯƠNG ĐỐI (Dùng để lưu vào DB)
+    public function getMainImagePathAttribute()
+    {
+        // Ưu tiên lấy từ relation mainImage
+        if ($this->relationLoaded('mainImage') && $this->mainImage) {
+            return $this->mainImage->image_path; // Trả về: uploads/sp1.jpg
+        }
+
+        // Nếu không, tìm cái đầu tiên trong list
+        $firstImage = $this->images->sortBy('sort_order')->first();
+
+        if ($firstImage) {
+            return $firstImage->image_path; // Trả về: uploads/sp1.jpg
+        }
+
+        // Mặc định
+        return 'images/placeholder.png';
+    }
+
+    // 2. Attribute trả về đường dẫn TUYỆT ĐỐI (Dùng cho Frontend/Vue hiển thị)
     public function getMainImageUrlAttribute()
     {
-        // Ưu tiên lấy từ relation mainImage nếu đã load
-        if ($this->relationLoaded('mainImage') && $this->mainImage) {
-            return asset($this->mainImage->image_path);
+        // Gọi lại hàm bên trên để lấy đường dẫn tương đối
+        $relativePath = $this->main_image_path;
+
+        // Kiểm tra nếu là ảnh placeholder cứng thì không cần nối 'storage' (tùy cấu trúc thư mục của bạn)
+        if ($relativePath === 'images/placeholder.png') {
+            return asset($relativePath);
         }
 
-        // Nếu không, tìm trong relation images (lấy cái đầu tiên)
-        $firstImage = $this->images->sortBy('sort_order')->first();
-        
-        if ($firstImage) {
-            return asset($firstImage->image_path);
-        }
-
-        // Trả về ảnh placeholder mặc định nếu không có ảnh nào
-        return asset('images/placeholder.png'); 
+        // Nối domain vào. 
+        // Nếu bạn lưu trong storage/app/public thì cần thêm tiền tố 'storage/'
+        // Nếu đường dẫn trong DB đã có chữ 'storage/' rồi thì chỉ cần asset()
+        return asset($relativePath);
     }
+
+
 
     // ==========================================
     // RELATIONS (Quan hệ)

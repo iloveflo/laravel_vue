@@ -17,6 +17,8 @@ import Search from '../views/search.vue'
 import Cart from '../views/user/cart.vue'
 import Profile from '../views/user/profile.vue'
 import Orders from '../views/user/orders.vue'
+import PaymentResult from '../views/PaymentResult.vue';
+import Review from '../views/user/review.vue'
 
 // Products
 import Products from '../views/products/index.vue'
@@ -104,6 +106,12 @@ const routes = [
         component: Cart,
       },
 
+      // Payment Result
+      {
+        path: '/payment/result',
+        name: 'PaymentResult',
+        component: PaymentResult
+      },
       // Products
       {
         path: 'products',
@@ -123,6 +131,13 @@ const routes = [
         path: '/product/:slug',
         name: 'product-details',
         component: ProductDetails,
+      },
+
+      // Review
+      {
+          path: '/reviews/:order_code', 
+          name: 'review',
+          component: Review,
       },
 
       // Help

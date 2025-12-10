@@ -19,6 +19,7 @@ class ChatbotConversation extends Model
         'user_id',
         'message',
         'response',
+        'products_json',
     ];
 
     /**

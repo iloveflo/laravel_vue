@@ -4,13 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-// use Illuminate\Database\Eloquent\SoftDeletes; // Cân nhắc: Có nên dùng SoftDeletes không?
 
 class ProductImage extends Model
 {
-    // Nếu bạn muốn xóa ảnh khỏi ổ cứng ngay lập tức trong Controller, 
-    // Tốt nhất là KHÔNG dùng SoftDeletes để tránh logic mâu thuẫn.
-    // Nếu vẫn muốn dùng SoftDeletes, hãy đọc phần lưu ý bên dưới.
     use HasFactory; 
 
     protected $table = 'product_images';
@@ -36,10 +32,6 @@ class ProductImage extends Model
         if (!$this->image_path) {
             return null;
         }
-
-        // SỬA: Bỏ 'public/' đi vì asset() đã trỏ vào thư mục public rồi
-        // Controller lưu: uploads/products/abc.jpg
-        // Kết quả: http://domain.com/uploads/products/abc.jpg
         return asset($this->image_path);
     }
 }

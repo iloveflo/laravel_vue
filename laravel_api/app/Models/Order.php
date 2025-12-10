@@ -29,6 +29,7 @@ class Order extends Model
         'coupon_code',
         'payment_method',
         'payment_status',
+        'transaction_id',
         'order_status',
         'note',
         'session_id',
@@ -76,3 +77,4 @@ class Order extends Model
         return $this->hasMany(Review::class, 'order_id');
     }
 }
+

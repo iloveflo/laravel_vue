@@ -91,18 +91,6 @@
                   </div>
                   <span v-else class="price">{{ formatPrice(product.price) }}</span>
                 </div>
-
-                <div class="product-sizes">
-                  <span v-for="size in getProductSizes(product).slice(0, 5)" :key="size" class="size-tag">
-                    {{ size }}
-                  </span>
-                </div>
-
-                <div class="product-colors">
-                  <div v-for="color in getProductColors(product).slice(0, 5)" :key="color.name || color.code"
-                    class="color-circle" :style="{ backgroundColor: color.code }" :title="color.name" />
-                </div>
-
                 <button class="detail-btn" @click="gotoDetail(product)">Xem chi tiết</button>
               </div>
             </div>
