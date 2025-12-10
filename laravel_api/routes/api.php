@@ -98,3 +98,6 @@ Route::middleware('auth:sanctum')->group(function () {
 //route đặt hàng
 Route::get('/checkout/info', [CheckoutController::class, 'getCheckoutInfo']);
 //Route::post('/checkout/process', [CheckoutController::class, 'processCheckout']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/my-orders', [OrderControllerr::class, 'index']);
+});

@@ -6,8 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
 
-class OrderController extends Controller
+class OrderControllerr extends Controller
 {
     public function index(Request $request)
     {
