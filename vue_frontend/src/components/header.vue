@@ -274,7 +274,7 @@ const toggleSearch = () => { searchOpen.value = !searchOpen.value }
 const toggleMobileMenu = () => { mobileMenuOpen.value = !mobileMenuOpen.value }
 const performSearch = () => {
   if (searchQuery.value.trim()) {
-    router.push({ path: '/search', query: { q: searchQuery.value } })
+    router.push({ path: '/search', query: { keyword: searchQuery.value } })
     searchOpen.value = false
     searchQuery.value = ''
     mobileMenuOpen.value = false

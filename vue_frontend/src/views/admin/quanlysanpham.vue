@@ -128,28 +128,28 @@
     </div>
 
     <!-- Phân trang -->
-    <div v-if="products.meta?.last_page > 1" class="pagination">
-      <button class="btn small" :disabled="products.meta.current_page === 1"
-        @click="changePage(products.meta.current_page - 1)">
+    <div v-if="products.last_page > 1" class="pagination">
+      <button class="btn small" :disabled="products.current_page === 1" @click="changePage(products.current_page - 1)">
         « Trước
       </button>
 
       <span>
-        Trang {{ products.meta.current_page }} / {{ products.meta.last_page }}
+        Trang {{ products.current_page }} / {{ products.last_page }}
       </span>
 
-      <button class="btn small" :disabled="products.meta.current_page === products.meta.last_page"
-        @click="changePage(products.meta.current_page + 1)">
+      <button class="btn small" :disabled="products.current_page === products.last_page"
+        @click="changePage(products.current_page + 1)">
         Sau »
       </button>
     </div>
+
 
     <!-- Modal form thêm / sửa -->
     <ProductFormModal v-if="showForm" :mode="formMode" :product="editingProduct" :categories="categories"
       @close="closeForm" @saved="onSaved" />
     <ProductImagesModal v-if="showImages && currentProductForImages" :show="showImages"
       :product-id="currentProductForImages.id" :product-name="currentProductForImages.name" @close="showImages = false"
-      @changed="fetchProducts(products.meta?.current_page || 1)" />
+      @changed="fetchProducts(products.current_page || 1)" />
   </div>
 </template>
 
@@ -159,7 +159,12 @@ import axios from 'axios'
 import ProductFormModal from '../../components/admin/ProductFormModal.vue'
 import ProductImagesModal from '../../components/admin/ProductImagesModal.vue'
 
-const products = ref({ data: [], meta: {} })
+const products = ref({
+  data: [],
+  current_page: 1,
+  last_page: 1,
+  total: 0,
+})
 const categories = ref([])
 const loading = ref(false)
 
@@ -259,14 +264,14 @@ const closeForm = () => {
 
 const onSaved = () => {
   showForm.value = false
-  fetchProducts(products.value.meta?.current_page || 1)
+  fetchProducts(products.value.current_page || 1)
 }
 
 const deleteProduct = async (id) => {
   if (!confirm('Bạn chắc chắn muốn xóa sản phẩm này?')) return
   try {
     await axios.delete(`/admin/products/${id}`)
-    fetchProducts(products.value.meta?.current_page || 1)
+    fetchProducts(products.value.current_page || 1)
   } catch (e) {
     console.error(e)
     alert('Xóa sản phẩm thất bại')

@@ -91,7 +91,14 @@
                   </div>
                   <span v-else class="price">{{ formatPrice(product.price) }}</span>
                 </div>
-                <button class="detail-btn" @click="gotoDetail(product)">Xem chi tiết</button>
+                <div class="product-actions">
+                  <button class="quick-view-btn" @click="openQuickView(product)">
+                    Xem nhanh
+                  </button>
+                  <button class="detail-btn" @click="gotoDetail(product)">
+                    Xem chi tiết
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -126,15 +133,119 @@
               </svg>
             </button>
           </div>
+          <!-- QUICK VIEW MODAL -->
+          <div v-if="showQuickView && quickViewProduct" class="modal-overlay" @click.self="closeQuickView">
+            <div class="modal">
+              <button class="modal-close" @click="closeQuickView">×</button>
+
+              <div class="modal-body">
+                <!-- Cột ảnh -->
+                <div class="modal-image">
+                  <img :src="quickMainImage" :alt="quickViewProduct.name" class="modal-main-image"
+                    @error="onQuickImageError" />
+
+                  <div class="thumb-list" v-if="quickViewProduct.images?.length">
+                    <img v-for="img in quickViewProduct.images" :key="img.id" :src="img.image_path" class="thumb"
+                      :class="{ active: img.image_path === quickMainImage }" @click="quickMainImage = img.image_path"
+                      @error="onQuickImageError" />
+                  </div>
+                </div>
+
+                <!-- Cột thông tin -->
+                <div class="modal-info">
+                  <h2 class="modal-title">{{ quickViewProduct.name }}</h2>
+
+                  <!-- Giá -->
+                  <div class="modal-price">
+                    <span
+                      v-if="quickViewProduct.sale_price && parseFloat(quickViewProduct.sale_price) < parseFloat(quickViewProduct.price)"
+                      class="sale-price">
+                      {{ formatPrice(quickViewProduct.sale_price) }}
+                    </span>
+                    <span :class="{
+                      'original-price':
+                        quickViewProduct.sale_price &&
+                        parseFloat(quickViewProduct.sale_price) < parseFloat(quickViewProduct.price),
+                    }">
+                      {{ formatPrice(quickViewProduct.price) }}
+                    </span>
+                  </div>
+
+                  <!-- Mô tả -->
+                  <p class="modal-desc-toggle" @click="showFullDesc = !showFullDesc">
+                    Mô tả sản phẩm {{ showFullDesc ? '⯅' : '⯆' }}
+                  </p>
+                  <p v-if="showFullDesc" class="modal-desc">
+                    {{ quickViewProduct.description || 'Chưa có mô tả.' }}
+                  </p>
+
+                  <!-- Màu sắc -->
+                  <div v-if="quickViewProduct.colors?.length" class="modal-block">
+                    <p><strong>Chọn màu:</strong></p>
+                    <div class="color-options">
+                      <button v-for="c in quickViewProduct.colors" :key="c.id" class="color-option"
+                        :style="{ backgroundColor: c.color_code }" :class="{ active: selectedColor === c.color_name }"
+                        @click="selectedColor = c.color_name" :title="c.color_name"></button>
+                    </div>
+                  </div>
+
+                  <!-- Size -->
+                  <div v-if="quickViewProduct.sizes?.length" class="modal-block">
+                    <p class="label">
+                      <strong>Chọn size:</strong>
+                      <a href="/help/size-guide" target="_blank" class="size-guide-link">
+                        Hướng dẫn chọn size
+                      </a>
+                    </p>
+                    <div class="size-options">
+                      <button v-for="s in quickViewProduct.sizes" :key="s.id" class="modal-size-btn"
+                        :class="{ active: selectedSize === s.size }" @click="selectedSize = s.size">
+                        {{ s.size }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Số lượng -->
+                  <div class="modal-block">
+                    <p><strong>Số lượng:</strong></p>
+                    <div class="quantity-container">
+                      <button class="qty-btn" @click="decreaseQty">–</button>
+                      <input type="number" class="qty-input" v-model.number="quantity" min="1" />
+                      <button class="qty-btn" @click="increaseQty">+</button>
+                    </div>
+                  </div>
+
+                  <!-- Thêm giỏ -->
+                  <button class="add-cart-btn" @click="addQuickToCart" :disabled="addingQuick">
+                    <span v-if="addingQuick">Đang xử lý...</span>
+                    <span v-else>Thêm vào giỏ hàng</span>
+                  </button>
+
+                  <div class="detail-link-wrap">
+                    <a href="javascript:void(0)" @click="gotoDetailFromQuick">
+                      Xem chi tiết sản phẩm
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </main>
       </div>
     </div>
+    <!-- TOAST THÔNG BÁO GIỮA MÀN HÌNH -->
+  <transition name="toast-fade">
+    <div v-if="isToastVisible" class="center-toast">
+      {{ toastMessage }}
+    </div>
+  </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'; // Thêm computed, bỏ onUnmounted
+import { ref, reactive, onMounted, computed, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 
 const router = useRouter();
 const products = ref([]);
@@ -356,6 +467,247 @@ onMounted(() => {
   }
   fetchProducts(1);
 });
+
+/* ======================================================
+   QUICK VIEW MODAL
+====================================================== */
+const showQuickView = ref(false)
+const quickViewProduct = ref(null)
+const quickMainImage = ref('')
+const showFullDesc = ref(false)
+
+const selectedSize = ref('')
+const selectedColor = ref('')
+const quantity = ref(1)
+const addingQuick = ref(false)
+
+const openQuickView = async (product) => {
+  try {
+    // Hiện modal trước, dùng tạm dữ liệu từ list
+    showQuickView.value = true
+    quickViewProduct.value = product
+    quickMainImage.value = getProductImage(product)
+    selectedSize.value = ''
+    selectedColor.value = ''
+    quantity.value = 1
+    showFullDesc.value = false
+
+    // Gọi API chi tiết
+    const res = await axios.get(`/products/${product.slug}`)
+    console.log('Quick view API data:', res.data) // <== LOG Ở ĐÂY
+
+    let detail = res.data.product || res.data
+
+    // Nếu backend chỉ trả về variants thì map ra sizes & colors cho popup
+    if (detail && detail.variants && detail.variants.length) {
+      const sizeMap = new Map()
+      const colorMap = new Map()
+
+      detail.variants.forEach((v, index) => {
+        // gom size
+        if (v.size && !sizeMap.has(v.size)) {
+          sizeMap.set(v.size, {
+            id: 'size_' + (index + 1),
+            size: v.size,
+            quantity: v.quantity ?? 0,
+          })
+        }
+
+        // gom màu
+        const colorKey = v.color_name || v.color_code
+        if (colorKey && !colorMap.has(colorKey)) {
+          colorMap.set(colorKey, {
+            id: 'color_' + (index + 1),
+            color_name: v.color_name || '',
+            color_code: v.color_code || '#000000',
+          })
+        }
+      })
+
+      // gắn thêm field sizes / colors để Vue dùng
+      detail = {
+        ...detail,
+        sizes: Array.from(sizeMap.values()),
+        colors: Array.from(colorMap.values()),
+      }
+    }
+
+    if (detail) {
+      quickViewProduct.value = detail
+
+      const mainImg =
+        detail.images?.find((img) => img.is_primary) ||
+        detail.images?.[0]
+
+      quickMainImage.value =
+        mainImg?.url ||
+        mainImg?.image_path ||
+        getProductImage(detail)
+    }
+  } catch (err) {
+    console.error('Lỗi openQuickView:', err)
+    alert('Không tải được thông tin sản phẩm')
+  }
+}
+
+
+const closeQuickView = () => {
+  showQuickView.value = false
+}
+
+const onQuickImageError = (e) => {
+  e.target.src = 'https://via.placeholder.com/600x600?text=No+Image'
+}
+
+const increaseQty = () => {
+  quantity.value++
+}
+const decreaseQty = () => {
+  if (quantity.value > 1) quantity.value--
+}
+
+// Lấy session_id cho khách vãng lai (giống productdetails.vue)
+const getSessionId = () => {
+  let sessionId = localStorage.getItem('cart_session_id')
+  if (!sessionId) {
+    sessionId = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now()
+    localStorage.setItem('cart_session_id', sessionId)
+  }
+  return sessionId
+}
+
+const addQuickToCart = async () => {
+  if (!quickViewProduct.value) return
+  const p = quickViewProduct.value
+
+  // Có size mà chưa chọn
+  const hasSizeOptions =
+    (p.sizes && p.sizes.length) ||
+    (p.variants && p.variants.some((v) => v.size))
+
+  if (hasSizeOptions && !selectedSize.value) {
+    showToast('Vui lòng chọn kích thước!')
+    return
+  }
+
+  // Có màu mà chưa chọn
+  const hasColorOptions =
+    (p.colors && p.colors.length) ||
+    (p.variants && p.variants.some((v) => v.color_name || v.color_code))
+
+  if (hasColorOptions && !selectedColor.value) {
+    showToast('Vui lòng chọn màu sắc!')
+    return
+  }
+
+  // Kiểm tra tồn kho
+  const stock = getAvailableStock(
+    p,
+    selectedSize.value || null,
+    selectedColor.value || null
+  )
+
+  if (stock !== null) {
+    if (stock <= 0) {
+      showToast('Sản phẩm hiện đã hết hàng!')
+      return
+    }
+    if (quantity.value > stock) {
+      showToast(`Kho chỉ còn ${stock} sản phẩm!`)
+      return
+    }
+  }
+
+  addingQuick.value = true
+
+  try {
+    const token = localStorage.getItem('token')
+    const sessionId = getSessionId()
+
+    const payload = {
+      product_id: p.id,
+      quantity: quantity.value,
+      size: selectedSize.value || null,
+      color: selectedColor.value || null,
+      session_id: sessionId
+    }
+
+    const config = { headers: {} }
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await axios.post(`/cart/add`, payload, config)
+
+    if (response.status === 200 || response.status === 201) {
+      showToast('Đã thêm sản phẩm vào giỏ hàng!')
+
+      if (response.data.data?.session_id) {
+        localStorage.setItem('cart_session_id', response.data.data.session_id)
+      }
+
+      window.dispatchEvent(new Event('cart-updated'))
+      showQuickView.value = false
+    }
+  } catch (error) {
+    console.error('Lỗi thêm giỏ hàng (xem nhanh - index):', error)
+    showToast('Có lỗi khi thêm vào giỏ hàng!')
+  } finally {
+    addingQuick.value = false
+  }
+}
+
+const gotoDetailFromQuick = () => {
+  if (!quickViewProduct.value) return
+  router.push({
+    name: 'product-details',
+    params: { slug: quickViewProduct.value.slug }
+  })
+  showQuickView.value = false
+}
+// ========== TOAST ========== 
+const isToastVisible = ref(false)
+const toastMessage = ref('')
+let toastTimerId = null
+
+const showToast = (msg) => {
+  toastMessage.value = msg
+  isToastVisible.value = true
+
+  if (toastTimerId) clearTimeout(toastTimerId)
+  toastTimerId = setTimeout(() => {
+    isToastVisible.value = false
+  }, 2200) // 2.2s tự ẩn
+}
+// Lấy tồn kho theo size + màu (nếu có variants)
+const getAvailableStock = (p, size, color) => {
+  if (!p) return null
+
+  // Có bảng variants: product.variants
+  if (p.variants && p.variants.length) {
+    const variant = p.variants.find(v => {
+      const sameSize  = !size  || v.size === size
+      const sameColor = !color || v.color_name === color || v.color_code === color
+      return sameSize && sameColor
+    })
+
+    if (!variant) return 0 // tổ hợp size/màu không tồn tại
+    return Number(variant.quantity ?? 0)
+  }
+
+  // Nếu bạn có field tổng như stock_quantity:
+  if (typeof p.stock_quantity !== 'undefined') {
+    return Number(p.stock_quantity)
+  }
+
+  // Không biết tồn kho -> bỏ qua kiểm tra
+  return null
+}
+/* Dọn dẹp timer khi rời trang */
+onBeforeUnmount(() => {
+  if (toastTimerId) clearTimeout(toastTimerId)
+})
+
 </script>
 
 <style scoped>
@@ -387,8 +739,6 @@ onMounted(() => {
   width: 280px;
   background: #000000;
   transition: all 0.4s ease;
-  min-height: calc(100vh - 80px);
-  overflow: hidden;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
 }
 
@@ -406,6 +756,15 @@ onMounted(() => {
   height: calc(100vh - 80px);
   overflow-y: auto;
   scroll-behavior: smooth;
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    position: sticky;
+    top: 80px;
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
 }
 
 /* Custom Scrollbar */
@@ -656,26 +1015,48 @@ onMounted(() => {
 /* Products Grid */
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  background: #e0e0e0;
-  border: 1px solid #e0e0e0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;                
+  background: transparent;  
+  border: none;
   margin-bottom: 40px;
 }
 
+/* Tablet / laptop nhỏ: 3 cột */
+@media (max-width: 1400px) {
+  .products-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Tablet dọc / mobile ngang: 2 cột */
+@media (max-width: 1023px) {
+  .products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Mobile rất nhỏ: 1 cột */
+@media (max-width: 375px) {
+  .products-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .product-card {
   background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e5e5e5;
   overflow: hidden;
-  transition: all 0.3s;
-  position: relative;
   display: flex;
   flex-direction: column;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .product-card:hover {
-  transform: translateY(-2px);
-  z-index: 2;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  transform: translateY(-4px);
+  border-color: #d0d0d0;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
 }
 
 .product-card:hover .product-image img {
@@ -684,102 +1065,81 @@ onMounted(() => {
 
 .product-image {
   position: relative;
-  aspect-ratio: 1;
-  overflow: hidden;
   background: #f5f5f5;
+  aspect-ratio: 3 / 4;   
+  overflow: hidden;
 }
 
 .product-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s;
+  display: block;
 }
 
+/* Badge "NỔI BẬT" giữ như cũ */
 .badge {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 10px;
+  right: 10px;
   background: #000000;
   color: #ffffff;
-  font-size: 9px;
-  padding: 6px 12px;
+  font-size: 10px;
+  padding: 6px 10px;
   letter-spacing: 1.5px;
   text-transform: uppercase;
 }
 
+/* Nội dung card */
 .product-info {
-  /* Tăng số 24px lên thành 40px hoặc 50px */
-  padding: 24px 20px;
-
-  flex: 1;
+  padding: 16px 16px 14px;
   display: flex;
   flex-direction: column;
-
-  /* Thêm dòng này để nội dung dãn đều ra, nhìn sẽ đẹp hơn khi thẻ dài */
-  justify-content: space-between;
+  flex: 1;
 }
 
+/* Tên sản phẩm: 2 dòng, đều nhau */
 .product-name {
-  font-size: 20px;
-  font-weight: 400;
-  color: #000000;
-  margin: 0 0 16px 0;
-
-  /* --- SỬA PHẦN NÀY --- */
+  font-size: 16px;
+  font-weight: 500;
+  color: #000;
+  margin: 0 0 10px 0;
   line-height: 1.5;
-  /* 1 dòng cao 30px (20px * 1.5) */
-  min-height: 60px;
-  /* Đặt tối thiểu 60px để chứa đủ 2 dòng */
-  /* Xóa height: 40px cũ đi */
-
+  min-height: 48px;                  /* giữ chiều cao ổn định cho 2 dòng */
   display: -webkit-box;
-  -webkit-line-clamp: 2;
-  /* Giới hạn 2 dòng */
+  -webkit-line-clamp: 2;             /* tối đa 2 dòng */
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* Thêm dấu ... nếu dài hơn 2 dòng */
-
-  letter-spacing: 0.5px;
 }
 
+/* Giá giữ style hiện tại, chỉ chỉnh chút margin */
 .product-price {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .price-sale {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .sale-price {
-  font-size: 20px;
-  font-weight: 400;
-  color: #f90505;
-  letter-spacing: 0.5px;
+  font-size: 18px;
+  font-weight: 500;
+  color: #ff0000;
 }
 
 .original-price {
-  font-size: 20px;
+  font-size: 16px;
   color: #999999;
   text-decoration: line-through;
-  letter-spacing: 0.5px;
 }
 
 .price {
-  font-size: 20px;
-  font-weight: 400;
-  color: #fd0505;
-  letter-spacing: 0.5px;
-}
-
-.product-sizes {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 500;
+  color: #ff0000;
 }
 
 .size-tag {
@@ -801,27 +1161,49 @@ onMounted(() => {
   height: 20px;
   border: 1px solid #e0e0e0;
 }
-
-.detail-btn {
-  width: 100%;
-  padding: 12px;
-  background: #000000;
-  color: #ffffff;
-  border: none;
-  cursor: pointer;
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  transition: all 0.3s;
-  margin-top: auto;
-  /* Đẩy nút xuống dưới cùng */
+/* ===== NHÓM NÚT HÀNH ĐỘNG ===== */
+.product-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
 }
 
-.detail-btn:hover {
+/* Base button cho 2 nút */
+.product-actions .quick-view-btn,
+.product-actions .detail-btn {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 11px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  border: 1px solid #000;
   background: #ffffff;
   color: #000000;
-  outline: 1px solid #000000;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Nút Xem nhanh: nền trắng, hover đen */
+.product-actions .quick-view-btn:hover {
+  background: #000000;
+  color: #ffffff;
+}
+
+/* Nút Xem chi tiết: mặc định nền đen */
+.product-actions .detail-btn {
+  background: #000000;
+  color: #ffffff;
+}
+.product-actions .detail-btn:hover {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* Mobile: cho 2 nút xếp dọc để dễ bấm */
+@media (max-width: 768px) {
+  .product-actions {
+    flex-direction: column;
+  }
 }
 
 /* Loading & Empty State */
@@ -1132,4 +1514,361 @@ onMounted(() => {
     font-size: 16px;
   }
 }
+
+/* ===============================
+   QUICK VIEW MODAL (XEM NHANH)
+   =============================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal {
+  background: #ffffff;
+  max-width: 980px;
+  width: calc(100% - 40px);
+  border-radius: 10px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  position: relative;
+  padding: 28px 32px 24px;
+  animation: modal-fade-in 0.2s ease-out;
+}
+
+/* nút đóng */
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: none;
+  background: #f4f4f4;
+  color: #000;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-close:hover {
+  background: #000;
+  color: #fff;
+}
+
+/* layout 2 cột */
+.modal-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: flex-start;
+}
+
+/* cột ảnh */
+.modal-image {
+  width: 100%;
+}
+
+.modal-main-image {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f5f5f5;
+}
+
+/* list ảnh nhỏ */
+.thumb-list {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  overflow-x: auto;
+}
+.thumb {
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: #f5f5f5;
+  object-fit: cover;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.thumb:hover {
+  transform: translateY(-2px);
+}
+.thumb.active {
+  border-color: #000;
+}
+
+/* cột thông tin */
+.modal-info {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0;
+  color: #000;
+}
+
+/* giá */
+.modal-price {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.modal-price .sale-price {
+  font-size: 20px;
+  font-weight: 500;
+  color: #ff0000;
+}
+.modal-price span {
+  font-size: 18px;
+}
+.modal-price .original-price {
+  color: #999;
+  text-decoration: line-through;
+}
+
+/* mô tả */
+.modal-desc-toggle {
+  margin-top: 4px;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #111;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.modal-desc-toggle:hover {
+  text-decoration: underline;
+}
+
+.modal-desc {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #555;
+}
+
+/* block nhỏ (màu, size, số lượng) */
+.modal-block {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.modal-block p {
+  margin: 0 0 8px 0;
+}
+
+/* màu */
+.color-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.color-option {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.color-option:hover {
+  transform: translateY(-1px);
+  border-color: #000;
+}
+.color-option.active {
+  border-color: #000;
+  box-shadow: 0 0 0 1px #000;
+}
+
+/* size */
+.size-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* nút size trong modal (dùng class modal-size-btn như ta đã đổi) */
+.modal-size-btn {
+  min-width: 48px;
+  padding: 8px 14px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #000;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.modal-size-btn:hover {
+  border-color: #000;
+}
+.modal-size-btn.active {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+/* link hướng dẫn size */
+.size-guide-link {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #1e88e5;
+  text-decoration: underline;
+}
+
+/* số lượng */
+.quantity-container {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.qty-btn {
+  width: 32px;
+  height: 40px;
+  border: none;
+  background: #f6f6f6;
+  cursor: pointer;
+  font-size: 18px;
+}
+.qty-btn:hover {
+  background: #e9e9e9;
+}
+.qty-input {
+  width: 54px;
+  height: 40px;
+  border: none;
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* nút thêm giỏ */
+.add-cart-btn {
+  margin-top: 18px;
+  width: 100%;
+  padding: 13px 20px;
+  background: #000;
+  color: #fff;
+  border: none;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.add-cart-btn:hover:not(.disabled-btn) {
+  background: #111;
+}
+.add-cart-btn.disabled-btn {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* link xem chi tiết */
+.detail-link-wrap {
+  margin-top: 12px;
+  text-align: center;
+}
+.detail-link-wrap a {
+  font-size: 13px;
+  color: #1e88e5;
+  text-decoration: underline;
+}
+
+/* animation nhỏ cho modal */
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* RESPONSIVE MODAL */
+@media (max-width: 900px) {
+  .modal {
+    padding: 22px 18px 18px;
+  }
+  .modal-body {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .modal-main-image {
+    max-height: 340px;
+  }
+}
+
+@media (max-width: 600px) {
+  .modal {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    border-radius: 0;
+    padding: 18px 14px 16px;
+  }
+  .modal-body {
+    gap: 16px;
+  }
+  .modal-title {
+    font-size: 18px;
+  }
+  .modal-price .sale-price,
+  .modal-price span {
+    font-size: 16px;
+  }
+}
+/* ========== TOAST GIỮA MÀN HÌNH ========== */
+
+.center-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #111;
+  color: #fff;
+  padding: 14px 28px;
+  border-radius: 4px;
+  font-size: 15px;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  z-index: 10000; /* cao hơn modal overlay */
+}
+
+/* hiệu ứng fade nhỏ */
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -46%);
+}
+
 </style>

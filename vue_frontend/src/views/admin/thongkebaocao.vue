@@ -104,7 +104,7 @@
               <tbody>
                 <tr v-for="product in stats.topProducts" :key="product.id">
                   <td class="product-cell">
-                    <img :src="product.main_image_url || '/images/placeholder.png'" alt="img" class="product-thumb">
+                    <img :src="product.image || '/images/placeholder.png'" alt="img" class="product-thumb">
                     <div class="product-name-col">
                         <span>{{ product.name }}</span>
                     </div>

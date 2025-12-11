@@ -164,11 +164,25 @@ class OrderController extends Controller
     // 2. THÊM MỚI: Lấy thông tin để hiện lên trang Review
     public function getReviewInfo($order_code)
     {
-        $order = Order::with('orderItems')->where('order_code', $order_code)->firstOrFail();
-        // Chỉ cho phép review đơn đã hoàn thành
+        // Lấy đơn hàng kèm theo sản phẩm (orderItems)
+        $order = Order::with('orderItems')
+            ->where('order_code', $order_code)
+            ->firstOrFail();
+
+        // 1. Chỉ cho phép review đơn đã hoàn thành
         if ($order->order_status !== 'completed') {
-             return response()->json(['message' => 'Đơn chưa hoàn thành'], 400);
+             return response()->json(['message' => 'Đơn chưa hoàn thành, chưa thể đánh giá.'], 400);
         }
+
+        // 2. LOGIC KIỂM TRA ĐÃ REVIEW CHƯA
+        // Kiểm tra trong bảng reviews xem có dòng nào chứa order_id này không
+        // Hàm exists() trả về true/false rất nhanh
+        $isReviewed = Review::where('order_id', $order->id)->exists();
+
+        // 3. Gắn thêm cờ 'is_reviewed' vào kết quả trả về
+        // Laravel cho phép gán thuộc tính động vào Model instance trước khi trả về JSON
+        $order->is_reviewed = $isReviewed;
+
         return response()->json($order);
     }
 

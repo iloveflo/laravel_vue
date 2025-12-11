@@ -149,7 +149,7 @@ const contentBlocks = ref([
     title: "SUSTAINABLE FASHION",
     description: "Thời trang có trách nhiệm. Chúng tôi cam kết sử dụng chất liệu bền vững và quy trình sản xuất thân thiện với môi trường.",
     linkText: "TÌM HIỂU THÊM",
-    linkUrl: "/sustainability",
+    linkUrl: "/products",
     imageSrc: "/images/photo-1532453288672-3a27e9be9efd.jpg"
   },
   {
@@ -163,14 +163,14 @@ const contentBlocks = ref([
     title: "LIMITED EDITION",
     description: "Những thiết kế giới hạn, được đánh số riêng biệt. Sở hữu một phần nghệ thuật độc bản từ các nghệ nhân hàng đầu.",
     linkText: "XEM LIMITED",
-    linkUrl: "/products/limited-edition",
+    linkUrl: "/products",
     imageSrc: "/images/photo-1441986300917-64674bd600d8.jpg"
   },
   {
     title: "FLORENTIC JOURNAL",
     description: "Góc nhìn về thời trang, nghệ thuật và lối sống. Đọc những bài viết sâu sắc từ đội ngũ sáng tạo và các cộng tác viên của chúng tôi.",
     linkText: "ĐỌC JOURNAL",
-    linkUrl: "/journal",
+    linkUrl: "/products",
     imageSrc: "/images/photo-1524758631624-e2822e304c36.jpg"
   }
 ]);

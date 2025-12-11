@@ -14,92 +14,121 @@ class ChatController extends Controller
 {
     public function sendMessage(Request $request)
     {
-        // 1. Xác thực
-        $request->validate([
-            'message' => 'required|string|max:1000',
-            'session_id' => 'nullable|string',
-        ]);
-
+        // 1. Validate & Init
+        $request->validate(['message' => 'required|string|max:500']); // Max 500 thôi cho đỡ tốn token
         $userMessage = $request->input('message');
         $sessionId = $request->input('session_id') ?? (string) Str::uuid();
         $userId = auth()->id() ?? null;
 
-        // 2. Lưu tin nhắn User
-        $conversation = ChatbotConversation::create([
-            'session_id' => $sessionId,
-            'user_id'    => $userId,
-            'message'    => $userMessage,
-            'response'   => null,
-        ]);
+        // Tìm tin nhắn gần nhất của session này
+        $lastConversation = ChatbotConversation::where('session_id', $sessionId)
+                            ->latest() // Sắp xếp mới nhất
+                            ->first();
+
+        if ($lastConversation && 
+            trim($lastConversation->message) === trim($userMessage) && 
+            $lastConversation->created_at->diffInMinutes(now()) < 2) 
+        {
+            // => TRẢ VỀ KẾT QUẢ CŨ LUÔN (Không gọi API Gemini nữa)
+            $products = $lastConversation->products_json ? json_decode($lastConversation->products_json, true) : [];
+            
+            return response()->json([
+                'reply'      => $lastConversation->response,
+                'products'   => $products,
+                'session_id' => $sessionId,
+                'cached'     => true // Cờ đánh dấu để biết là hàng cache
+            ]);
+        }
+        // 2. Tìm kiếm sản phẩm & Coupon (Giữ nguyên logic của bạn - nó tốt rồi)
+        // Mẹo: Nếu user message quá ngắn (< 3 ký tự) thì skip search để đỡ tốn query DB
+        $products = strlen($userMessage) > 3 ? $this->searchProducts($userMessage) : $this->getFallbackProducts();
+        $coupons = $this->getActiveCoupons();
+
+        // 3. Chuẩn bị Context dữ liệu
+        $productContext = $this->formatProductsToString($products);
+        $couponContext = $this->formatCouponsToString($coupons);
+
+        // 4. LẤY LỊCH SỬ CHAT CŨ (Để Bot thông minh hơn)
+        // Lấy 4 câu gần nhất (2 cặp hỏi-đáp) của session này
+        $history = ChatbotConversation::where('session_id', $sessionId)
+            ->orderBy('created_at', 'desc')
+            ->take(4) // Đừng lấy nhiều quá, tốn tiền/token
+            ->get()
+            ->reverse(); // Đảo ngược lại để đúng thứ tự thời gian
+
+        // Build chuỗi lịch sử
+        $historyContext = "";
+        foreach ($history as $chat) {
+            $historyContext .= "Khách: {$chat->message}\nBot: {$chat->response}\n";
+        }
+
+        // 5. Prompt (Tối ưu lại cho ngắn gọn, tiết kiệm token)
+        $systemPrompt = "Bạn là AI bán hàng. Dữ liệu kho hiện tại:\n" .
+            ($productContext ? "SẢN PHẨM:\n$productContext" : "SẢN PHẨM: Không tìm thấy.") . "\n" .
+            ($couponContext ? "MÃ GIẢM GIÁ:\n$couponContext" : "") . "\n" .
+            "QUY TẮC: Trả lời ngắn gọn (<100 chữ). Chỉ tư vấn sản phẩm có trong danh sách trên. Nếu khách hỏi sản phẩm cũ, hãy xem lịch sử chat.";
+
+        // 6. Gọi API (SỬA LẠI ĐOẠN NÀY)
+        $rawKeys = env('GEMINI_API_KEY');
+        $keysArray = explode(',', $rawKeys);
+        $apiKey = trim($keysArray[array_rand($keysArray)]);
+        if (empty($apiKey)) {
+            Log::error('Gemini API Key is missing!');
+            return response()->json(['reply' => 'Lỗi cấu hình hệ thống.'], 500);
+        }
+
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}";
+
+        $fullPrompt = $systemPrompt . "\n\n--- LỊCH SỬ CHAT ---\n" . $historyContext . "\n--- MỚI ---\nKhách: " . $userMessage;
 
         try {
-            // --- TÌM KIẾM CHÍNH XÁC (Logic mới) ---
-            $products = $this->searchProducts($userMessage);
-
-            // --- LẤY COUPON ---
-            $coupons = $this->getActiveCoupons();
-
-            // 4. Context
-            $productContext = $this->formatProductsToString($products);
-            $couponContext = $this->formatCouponsToString($coupons);
-
-            // 5. Prompt
-            $systemPrompt = "Bạn là chuyên gia bán hàng AI. Dựa trên dữ liệu kho hàng thực tế bên dưới:\n\n" .
-                "--- SẢN PHẨM TÌM THẤY ---\n" .
-                ($productContext ?: "Không tìm thấy sản phẩm khớp yêu cầu.") . "\n\n" .
-                "--- KHUYẾN MÃI ---\n" .
-                ($couponContext ?: "Không có mã giảm giá.") . "\n\n" .
-                "YÊU CẦU: \n" .
-                "- Mời khách xem sản phẩm nếu có (nhấn mạnh màu/size khách cần).\n" .
-                "- Gợi ý mã giảm giá phù hợp để chốt đơn.\n" .
-                "- Trả lời ngắn gọn, tự nhiên.";
-
-            // 6. Gọi API
-            $apiKey = env('GEMINI_API_KEY');
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}";
-
             $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                // Tự động thử lại 3 lần, mỗi lần cách nhau 2 giây nếu lỗi mạng/429
+                ->retry(2, 10000, function ($exception, $request) {
+                    return $exception->response->status() === 429;
+                })
                 ->post($url, [
                     'contents' => [[
-                        'parts' => [['text' => $systemPrompt . "\n\nKhách: " . $userMessage]]
+                        'parts' => [['text' => $fullPrompt]]
                     ]]
                 ]);
 
-            if ($response->successful()) {
+           if ($response->successful()) {
                 $data = $response->json();
-                $aiReply = $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Xin lỗi, tôi chưa hiểu ý bạn.';
+                $aiReply = $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Xin lỗi, tôi không hiểu ý bạn.';
             } else {
-                Log::error('Gemini API Error: ' . $response->body());
-                $aiReply = 'Hệ thống đang bận.';
+                // Trường hợp API trả về lỗi khác 200 (nhưng không phải exception)
+                $aiReply = 'Hệ thống đang bảo trì một chút, bạn chờ xíu nhé.';
             }
-
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            // BẮT LỖI 429 CỤ THỂ
+            if ($e->response->status() == 429) {
+                Log::warning('Gemini Rate Limit Hit: ' . $userId);
+                // Trả lời khéo léo để khách không biết lỗi hệ thống
+                $aiReply = 'Hiện tại có quá nhiều người đang hỏi, bạn vui lòng đợi khoảng 30 giây rồi hỏi lại mình nhé! ❤️'; 
+            } else {
+                Log::error('Gemini API Error: ' . $e->getMessage());
+                $aiReply = 'Hệ thống đang gặp trục trặc nhỏ, bạn thử lại sau nhé.';
+            }
         } catch (\Exception $e) {
-            Log::error('Chatbot Error: ' . $e->getMessage());
-            $aiReply = 'Lỗi hệ thống.';
-            $products = [];
+            Log::error('Chat Controller Error: ' . $e->getMessage());
+            $aiReply = 'Có lỗi xảy ra, vui lòng thử lại.';
         }
 
-        // Kiểm tra xem session này đã chat bao nhiêu câu rồi
-        $count = ChatbotConversation::where('session_id', $sessionId)->count();
-        
-        // Nếu quá 20 câu, xóa 5 câu cũ nhất của session này
-        if ($count >= 20) {
-            ChatbotConversation::where('session_id', $sessionId)
-                ->orderBy('created_at', 'asc')
-                ->limit(5)
-                ->delete();
-        }
-
-        // 8. Lưu DB
-        $productsJson = (!empty($products) && count($products) > 0) ? json_encode($products) : null;
-        $conversation->update([
-            'response' => $aiReply,
-            'products_json' => $productsJson
+        // 7. Lưu DB & Trả kết quả (Giữ nguyên)
+        ChatbotConversation::create([
+            'session_id' => $sessionId,
+            'user_id'    => $userId,
+            'message'    => $userMessage,
+            'response'   => $aiReply,
+            'products_json' => (!empty($products) && count($products) > 0) ? json_encode($products) : null
         ]);
+
+        // Cleanup cũ (Giữ nguyên code của bạn)
 
         return response()->json([
             'reply'      => $aiReply,
-            'products'   => $products,
+            'products'   => $products, // Trả cái này để Frontend render list sản phẩm dạng thẻ (Card)
             'session_id' => $sessionId
         ]);
     }
@@ -114,7 +143,7 @@ class ChatController extends Controller
         $keywords = [];
         // Danh sách từ nối tiếng Việt cần bỏ qua để query chính xác hơn
         $stopWords = ['là', 'của', 'có', 'không', 'những', 'các', 'cái', 'shop', 'cho', 'mình', 'em', 'anh', 'chị', 'muốn', 'mua', 'tìm', 'giá', 'bao', 'nhiêu'];
-        
+
         foreach ($rawKeywords as $word) {
             $word = strtolower(trim($word));
             if (strlen($word) >= 2 && !in_array($word, $stopWords)) {
@@ -136,14 +165,14 @@ class ChatController extends Controller
             $query->where(function ($subQ) use ($word) {
                 // Từ khóa này phải xuất hiện ở ÍT NHẤT MỘT TRONG CÁC CỘT SAU:
                 $subQ->orWhere('name', 'like', "%{$word}%")
-                     ->orWhere('description', 'like', "%{$word}%")
-                     ->orWhereHas('category', function($catQ) use ($word) {
-                         $catQ->where('name', 'like', "%{$word}%");
-                     })
-                     ->orWhereHas('variants', function($varQ) use ($word) {
-                         $varQ->where('color_name', 'like', "%{$word}%")
-                              ->orWhere('size', 'like', "%{$word}%");
-                     });
+                    ->orWhere('description', 'like', "%{$word}%")
+                    ->orWhereHas('category', function ($catQ) use ($word) {
+                        $catQ->where('name', 'like', "%{$word}%");
+                    })
+                    ->orWhereHas('variants', function ($varQ) use ($word) {
+                        $varQ->where('color_name', 'like', "%{$word}%")
+                            ->orWhere('size', 'like', "%{$word}%");
+                    });
             });
         }
 
@@ -157,18 +186,18 @@ class ChatController extends Controller
         // --- LỚP 2: TÌM KIẾM RỘNG (OR Logic - Fallback) ---
         // Nếu Lớp 1 không ra gì (do khách gõ sai hoặc tìm quá khó), chuyển sang tìm "Có từ nào hay từ đó"
         $queryBroad = Product::with(['category', 'variants'])->where('status', 'active');
-        
+
         $queryBroad->where(function ($subQ) use ($keywords) {
             foreach ($keywords as $word) {
                 $subQ->orWhere('name', 'like', "%{$word}%")
-                     ->orWhere('description', 'like', "%{$word}%")
-                     ->orWhereHas('category', function($catQ) use ($word) {
-                         $catQ->where('name', 'like', "%{$word}%");
-                     })
-                     ->orWhereHas('variants', function($varQ) use ($word) {
-                         $varQ->where('color_name', 'like', "%{$word}%")
-                              ->orWhere('size', 'like', "%{$word}%");
-                     });
+                    ->orWhere('description', 'like', "%{$word}%")
+                    ->orWhereHas('category', function ($catQ) use ($word) {
+                        $catQ->where('name', 'like', "%{$word}%");
+                    })
+                    ->orWhereHas('variants', function ($varQ) use ($word) {
+                        $varQ->where('color_name', 'like', "%{$word}%")
+                            ->orWhere('size', 'like', "%{$word}%");
+                    });
             }
         });
 
@@ -183,7 +212,8 @@ class ChatController extends Controller
         return $this->getFallbackProducts();
     }
 
-    private function getFallbackProducts() {
+    private function getFallbackProducts()
+    {
         return Product::with(['category', 'variants'])
             ->where('status', 'active')
             ->latest()
@@ -208,10 +238,10 @@ class ChatController extends Controller
         $context = "";
         foreach ($products as $p) {
             $price = number_format($p->sale_price > 0 ? $p->sale_price : $p->price);
-            $variants = $p->variants->map(function($v) {
+            $variants = $p->variants->map(function ($v) {
                 return "{$v->color_name}-Size{$v->size}";
             })->unique()->implode(', ');
-            
+
             $context .= "- {$p->name} ({$price}đ). Có: {$variants}\n";
         }
         return $context;

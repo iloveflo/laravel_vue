@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Product\ProductController;
 use App\Http\Controllers\Admin\OrderController;
@@ -73,6 +74,9 @@ Route::middleware('auth:sanctum', 'admin')->prefix('admin')->group(function () {
 Route::get('/products/category/{slug}', [ProductController::class, 'getByCategory']);
 Route::get('/products', [ProductController::class, 'getAll']);
 Route::get('/products/{slug}', [ProductDetailsController::class, 'show']);//chi tiết sản phẩm
+
+// tìm kiếm
+Route::get('/search', [SearchController::class, 'getAll']);
 
 //tài khoản khách hàng
 Route::middleware('auth:sanctum')->group(function () {

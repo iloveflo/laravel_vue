@@ -1,6 +1,20 @@
 <template>
   <div class="page-container">
-    <div v-if="order" class="content-wrapper">
+    
+    <div v-if="isReviewed" class="modal-overlay">
+        <div class="modal-content">
+            <div class="success-icon">✅</div>
+            <h3>ĐƠN HÀNG ĐÃ ĐƯỢC ĐÁNH GIÁ</h3>
+            <p>Bạn đã gửi đánh giá cho đơn hàng <b>#{{ order?.order_code }}</b> rồi.</p>
+            <p>Cảm ơn bạn đã chia sẻ trải nghiệm mua sắm!</p>
+            
+            <div class="modal-actions">
+                <button @click="router.push('/')" class="btn-home">Về Trang Chủ</button>
+            </div>
+        </div>
+    </div>
+
+    <div v-else-if="order" class="content-wrapper">
       
       <div class="header">
         <h2 class="title">ĐÁNH GIÁ ĐƠN HÀNG <span class="order-id">#{{ order.order_code }}</span></h2>
@@ -8,7 +22,6 @@
       </div>
       
       <div v-for="(item, index) in reviews" :key="item.product_id" class="review-card">
-        
         <div class="product-header">
           <div class="image-box">
             <img :src="item.image" alt="Product Image">
@@ -18,7 +31,6 @@
             <p class="product-meta">Size: {{ item.size }} | Màu: {{ item.color }}</p>
           </div>
         </div>
-
         <div class="rating-box">
             <label class="label-text">CHẤT LƯỢNG SẢN PHẨM</label>
             
@@ -35,7 +47,6 @@
                 </button>
                 <span class="rating-status">{{ getRatingText(item.rating) }}</span>
             </div>
-
             <textarea 
                 v-model="item.comment" 
                 class="comment-input" 
@@ -55,8 +66,9 @@
     </div>
 
     <div v-else class="loading-state">
-        ĐANG TẢI DỮ LIỆU...
+        <span class="loader"></span> ĐANG TẢI DỮ LIỆU...
     </div>
+
   </div>
 </template>
 
@@ -67,9 +79,11 @@ import axios from 'axios';
 
 const route = useRoute();
 const router = useRouter();
+
 const order = ref(null);
 const reviews = ref([]);
 const isSubmitting = ref(false);
+const isReviewed = ref(false); // Biến kiểm tra trạng thái
 
 const getRatingText = (star) => {
     const texts = { 1: 'TỆ', 2: 'KHÔNG TỐT', 3: 'BÌNH THƯỜNG', 4: 'HÀI LÒNG', 5: 'TUYỆT VỜI' };
@@ -78,9 +92,16 @@ const getRatingText = (star) => {
 
 onMounted(async () => {
   try {
-    // Nhớ thay đổi đường dẫn API cho đúng với project của bạn
     const res = await axios.get(`/orders/${route.params.order_code}/review-info`);
     order.value = res.data;
+
+    // 1. KIỂM TRA LUÔN KHI VỪA TẢI XONG
+    if (res.data.is_reviewed === true) {
+        isReviewed.value = true;
+        return; // Dừng, không cần map dữ liệu form làm gì
+    }
+
+    // Nếu chưa đánh giá thì mới map dữ liệu ra form
     reviews.value = res.data.order_items.map(item => ({
       product_id: item.product_id,
       product_name: item.product_name,
@@ -92,7 +113,9 @@ onMounted(async () => {
     }));
   } catch (e) { 
     console.error(e);
-    alert("Không tải được đơn hàng");
+    // Nếu API trả lỗi 404 hoặc lỗi khác thì đẩy về trang chủ hoặc báo lỗi
+    alert("Không tìm thấy đơn hàng hoặc đơn hàng không tồn tại.");
+    router.push('/');
   }
 });
 
@@ -108,10 +131,12 @@ const submitReviews = async () => {
         comment: r.comment
       }))
     });
-    alert('Đánh giá thành công!');
-    router.push('/'); 
+    
+    // Đánh giá xong thì chuyển sang màn hình thông báo luôn
+    isReviewed.value = true; 
+    
   } catch (e) { 
-    alert('Lỗi khi gửi');
+    alert('Lỗi khi gửi đánh giá, vui lòng thử lại.');
   } finally {
     isSubmitting.value = false;
   }
@@ -119,6 +144,74 @@ const submitReviews = async () => {
 </script>
 
 <style scoped>
+/* CSS CHO MODAL GIỮA MÀN HÌNH */
+.modal-overlay {
+    position: fixed;
+    top: 0; 
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6); /* Mờ nền đen */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.modal-content {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    animation: popIn 0.3s ease-out;
+}
+
+.success-icon {
+    font-size: 50px;
+    margin-bottom: 20px;
+}
+
+.modal-content h3 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+    font-weight: bold;
+}
+
+.modal-content p {
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.btn-home, .btn-history {
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-home {
+    background: #000;
+    color: #fff;
+}
+.btn-home:hover { background: #333; }
+
+@keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+
 /* --- CẤU TRÚC TRANG --- */
 .page-container {
     min-height: 100vh;

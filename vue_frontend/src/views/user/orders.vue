@@ -245,13 +245,7 @@ export default {
     },
 
     handleReview(orderCode) {
-       // Tương tự cho trang đánh giá
-       const currentSession = this.$route.query.session_id;
-       
-       this.$router.push({
-           path: `/reviews/${orderCode}`,
-           query: currentSession ? { session_id: currentSession } : {}
-       });
+       this.$router.push({path: `/reviews/${orderCode}`,})
     },
     
     openBuyAgainModal(order) {

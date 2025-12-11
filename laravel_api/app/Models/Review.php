@@ -54,4 +54,14 @@ class Review extends Model
     {
         return $this->belongsTo(Order::class, 'order_id');
     }
+
+    // Thêm dòng này để JSON trả về có sẵn field 'customer_name'
+    protected $appends = ['customer_name']; 
+
+    // Accessor: Tự động lấy full_name từ Order
+    public function getCustomerNameAttribute()
+    {
+        // Kiểm tra xem có order không (đề phòng order bị xóa cứng)
+        return $this->order ? $this->order->full_name : 'Khách hàng';
+    }
 }

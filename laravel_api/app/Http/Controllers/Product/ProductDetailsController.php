@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
-use Illuminate\Http\Request;
 
 class ProductDetailsController extends Controller
 {
@@ -14,54 +13,44 @@ class ProductDetailsController extends Controller
      */
     public function show($slug)
     {
-        // Lấy sản phẩm + quan hệ cần thiết
+        // 1. Lấy sản phẩm chính
         $product = Product::with([
             'category:id,name,slug',
-
-            // Ảnh: ảnh chính trước, sau đó theo sort_order
             'images' => function ($query) {
                 $query->orderByDesc('is_primary')
-                      ->orderBy('sort_order');
+                    ->orderBy('sort_order');
             },
-
-            // Biến thể: màu + size + số lượng
             'variants',
-
-            // Đánh giá + user của đánh giá
             'reviews' => function ($q) {
-                $q->with([
-                    // users table có full_name, không phải name
-                    'user:id,full_name,avatar'
-                ])->latest();
+                $q->with(['order:id,full_name'])->latest();
             },
         ])
-        ->where('slug', $slug)
-        ->where('status', 'active')   // chỉ lấy sản phẩm đang bán
-        ->first();
+            ->where('slug', $slug)
+            ->where('status', 'active')
+            ->first();
 
+        // 2. Nếu không tìm thấy thì trả 404 luôn, KHÔNG dùng $product nữa
         if (!$product) {
             return response()->json([
                 'message' => 'Sản phẩm không tồn tại'
             ], 404);
         }
 
-        // Ảnh chính: ưu tiên is_primary, nếu không có thì lấy ảnh đầu tiên
+        // 3. Lấy sản phẩm liên quan (cùng category, trừ chính nó)
+        $relatedProducts = Product::with(['images'])
+            ->where('status', 'active')
+            ->where('category_id', $product->category_id)
+            ->where('id', '!=', $product->id)
+            ->orderBy('created_at', 'desc')
+            ->take(12)
+            ->get();
+
+        // 4. Ảnh chính
         $primaryImage = $product->images
             ->where('is_primary', 1)
             ->first() ?? $product->images->first();
 
-        // Nhóm variants theo màu để frontend dễ hiển thị:
-        // [
-        //   {
-        //     color_name: "Trắng",
-        //     color_code: "#FFFFFF",
-        //     variants: [
-        //        { id, size: "M", quantity, sku, additional_price },
-        //        { id, size: "L", quantity, sku, additional_price },
-        //     ]
-        //   },
-        //   ...
-        // ]
+        // 5. Gom nhóm variant theo màu (nếu bạn dùng)
         $colorGroups = $product->variants
             ->groupBy(function ($v) {
                 return $v->color_name ?: $v->color_code ?: 'default';
@@ -86,12 +75,12 @@ class ProductDetailsController extends Controller
             ->values();
 
         return response()->json([
-            'product'       => $product,
-            'primary_image' => $primaryImage ? $primaryImage->url : null, // dùng accessor url trong ProductImage
-            'images'        => $product->images,      // full list ảnh (có url)
-            'variants'      => $product->variants,    // list biến thể thô
-            'variants_by_color' => $colorGroups,      // đã group theo màu, tiện cho UI
-            'reviews'       => $product->reviews,
+            'product'          => $product,
+            'primary_image'    => $primaryImage?->image_path ?? null,
+            'images'           => $product->images,
+            'reviews'          => $product->reviews,
+            'color_groups'     => $colorGroups,
+            'related_products' => $relatedProducts,
         ]);
     }
 }
