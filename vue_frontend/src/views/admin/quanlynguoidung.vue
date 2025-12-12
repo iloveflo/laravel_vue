@@ -327,7 +327,7 @@ export default {
       const changeStatus = async (id) => {
         const newStatus = prompt('Nhập trạng thái mới: active, inactive, banned')
         if (!newStatus) return
-        await axios.patch(`/admin/users/${id}/status`, { status: newStatus })
+        await axios.post(`/admin/users/${id}/status`, { status: newStatus, _method: 'PATCH' })
         fetchUsers()
       }
 
@@ -438,7 +438,7 @@ export default {
     const restoreUser = async (id) => {
       if (!confirm('Bạn có chắc muốn khôi phục user này?')) return
       try {
-        await axios.patch(`/admin/users/${id}/restore`)
+        await axios.post(`/admin/users/${id}/restore`, {_method: 'PATCH'});
         alert('Đã khôi phục user')
         fetchDeletedUsers()
         fetchUsers()
@@ -452,7 +452,7 @@ export default {
     const deleteUser = async (id) => {
       if (!confirm('Bạn có chắc muốn xóa user này?')) return
       try {
-        await axios.delete(`/admin/users/${id}`)
+        await axios.post(`/admin/users/${id}`, {_method: 'DELETE'});
         fetchUsers()
         alert('Đã xóa user')
       } catch (err) {

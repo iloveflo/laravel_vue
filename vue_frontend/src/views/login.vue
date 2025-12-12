@@ -189,8 +189,11 @@ const handleLogin = async () => {
     })
 
     const userRole = response.data.user.role
-
     localStorage.setItem('token', response.data.token)
+
+    if (response.data.expires_at) {
+        localStorage.setItem('expires_at', response.data.expires_at);
+    }
 
     if (rememberMe.value && userRole !== 'admin') {
       localStorage.setItem('rememberedEmail', email.value)

@@ -291,8 +291,9 @@ const updateStatus = async () => {
     // URL sẽ thành: /api/admin/orders/ORD-2023-001/status
     const url = `/admin/${selectedOrder.value.order_code}/status`;
 
-    await axios.put(url, {
-      order_status: selectedOrder.value.order_status
+    await axios.post(url, {
+      order_status: selectedOrder.value.order_status,
+      _method: 'PUT'
     });
 
     alert('Cập nhật trạng thái thành công!');

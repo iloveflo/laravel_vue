@@ -137,7 +137,10 @@ const uploadImage = async () => {
 const remove = async (id) => {
   if (!confirm('Xóa ảnh này?')) return
   try {
-    await axios.delete(`/admin/products/images/${id}`)
+    // Thay đổi từ axios.delete sang axios.post
+    await axios.post(`/admin/products/images/${id}`, {
+        _method: 'DELETE' // Báo cho server Laravel biết đây là lệnh DELETE
+    });
     await fetchImages()
     emit('changed')
   } catch (e) {
@@ -148,7 +151,9 @@ const remove = async (id) => {
 
 const setPrimary = async (id) => {
   try {
-    await axios.patch(`/admin/products/images/${id}/primary`)
+    await axios.post(`/admin/products/images/${id}/primary`, {
+      _method: 'PATCH'
+    })
     await fetchImages()
     emit('changed')
   } catch (e) {

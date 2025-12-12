@@ -14,9 +14,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Support\Facades\Auth;
 use Exception;
 use Mews\Captcha\Facades\Captcha;
+use Laravel\Sanctum\PersonalAccessToken;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -25,20 +26,14 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        // 1. Validate dữ liệu đầu vào (Thêm check Captcha)
+        // 1. Validate dữ liệu đầu vào
         $request->validate([
             'email'      => 'required|email',
             'password'   => 'required|string',
             'rememberMe' => 'sometimes|boolean',
-
-            // Bắt buộc phải có key (nhận từ API /captcha)
             'key'        => 'required|string',
-
-            // Rule đặc biệt của mews/captcha cho API
-            // Cú pháp: captcha_api:{KEY_GỬI_LÊN},{TÊN_CONFIG_TRONG_FILE_CAPTCHA.PHP}
             'captcha'    => 'required|captcha_api:' . $request->key . ',default',
         ], [
-            // Tùy chỉnh thông báo lỗi cho dễ hiểu
             'captcha.required'    => 'Vui lòng nhập mã xác nhận.',
             'captcha.captcha_api' => 'Mã xác nhận không chính xác.',
         ]);
@@ -55,9 +50,22 @@ class AuthController extends Controller
             return response()->json(['message' => 'Sai thông tin đăng nhập'], 401);
         }
 
-        // --- Tạo token ---
+        // --- XỬ LÝ THỜI GIAN HẾT HẠN TOKEN (LOGIC MỚI Ở ĐÂY) ---
+        // Nếu là admin thì 5 tiếng (300 phút), còn user thường thì 1 tiếng (60 phút)
+        if ($user->role === 'admin') {
+            $expiresAt = now()->addHours(5);
+            try {
+                PersonalAccessToken::where('expires_at', '<', now())->delete();
+            } catch (\Exception $e) {
+                Log::error('Lỗi dọn dẹp Token (Sanctum Prune): ' . $e->getMessage());
+            }
+        } else {
+            $expiresAt = now()->addHour(); // 1 tiếng
+        }
+
+        // Tạo token với thời gian hết hạn cụ thể (tham số thứ 3)
         $tokenName = 'auth-token';
-        $token = $user->createToken($tokenName)->plainTextToken;
+        $token = $user->createToken($tokenName, ['*'], $expiresAt)->plainTextToken;
 
         // --- Xử lý Remember Me (Giữ nguyên logic của bạn) ---
         if ($request->rememberMe && $user->role !== 'admin') {
@@ -70,6 +78,7 @@ class AuthController extends Controller
             'message' => 'Đăng nhập thành công',
             'user'    => $user,
             'token'   => $token,
+            'expires_at' => $expiresAt->toIso8601String(),
         ], 200);
     }
     // Current authenticated user info
@@ -115,16 +124,25 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        // Lấy user hiện tại từ request
         $user = $request->user();
 
-        // 1. Xóa token hiện tại
-        $user->currentAccessToken()->delete();
+        // [QUAN TRỌNG] Kiểm tra xem user có tồn tại không (đề phòng trường hợp middleware lỗi)
+        if ($user) {
+            // 1. Xóa token hiện tại (Token mà user đang dùng để gửi request này)
+            // Cần kiểm tra xem currentAccessToken có tồn tại không trước khi delete để tránh lỗi "Call on null"
+            if ($user->currentAccessToken()) {
+                $user->currentAccessToken()->delete();
+            }
 
-        // 2. Xóa luôn remember_token trong DB
-        $user->remember_token = null;
-        $user->save();
+            // 2. Xóa remember_token trong DB
+            // Sử dụng forceFill để đảm bảo an toàn dữ liệu và save
+            $user->forceFill([
+                'remember_token' => null,
+            ])->save();
+        }
 
-        return response()->json(['message' => 'Đăng xuất thành công']);
+        return response()->json(['message' => 'Đăng xuất thành công'], 200);
     }
 
     public function register(Request $request)
@@ -355,26 +373,52 @@ class AuthController extends Controller
         // 1. Tìm hoặc tạo user
         $user = $this->_registerOrLoginUser($socialUser, $provider);
 
-        // 2. Tạo Token (Tái sử dụng logic của hàm Login)
-        // Mặc định social login coi như là có rememberMe = true
-        $authData = $this->generateTokenAndUser($user, true);
+        // 2. --- [LOGIC MỚI] Tính toán thời gian & Dọn rác ---
+        if ($user->role === 'admin') {
+            // Admin: 5 tiếng
+            $expiresAt = now()->addHours(5);
 
-        // 3. Xây dựng URL để trả Token về cho Vue
-        // Lưu ý: Nếu đang chạy Vue dev (localhost:5173), bạn cần sửa đường dẫn dưới đây
-        // Nếu đã build vào Laravel thì để '/'
+            // Ké tính năng dọn dẹp rác (giống hàm Login)
+            try {
+                PersonalAccessToken::where('expires_at', '<', now())->delete();
+            } catch (\Exception $e) { /* Ignore lỗi */
+            }
+        } else {
+            // User thường: 1 tiếng
+            $expiresAt = now()->addHour();
+        }
 
-        $frontendUrl = '/login'; // Hoặc 'http://localhost:5173/auth/callback'
+        // 3. --- [LOGIC MỚI] Tạo Token trực tiếp tại đây ---
+        // Bỏ qua hàm generateTokenAndUser để kiểm soát được expiresAt
+        $token = $user->createToken('auth-token', ['*'], $expiresAt)->plainTextToken;
+
+        // Cập nhật remember_token cho User thường (nếu cần)
+        if ($user->role !== 'admin') {
+            $user->forceFill([
+                'remember_token' => bin2hex(random_bytes(60))
+            ])->save();
+        }
+
+        // 4. Xây dựng URL để trả Token về cho Vue
+        // Lưu ý: Thường các biến boolean gửi qua URL sẽ thành chuỗi "true"/"false"
+        // hoặc "1"/"0". FE cần parse cẩn thận.
+
+        // Nếu chạy local Vue dev:
+        // $frontendUrl = 'http://localhost:5173/auth/callback'; 
+
+        // Nếu chạy production (chung domain):
+        $frontendUrl = '/login';
 
         $queryParams = http_build_query([
-            'token' => $authData['token'],
-            'user_role' => $user->role,
-            'user_email' => $user->email,
-            'login_success' => 'true'
+            'token'         => $token,
+            'user_role'     => $user->role,
+            'user_email'    => $user->email,
+            'login_success' => 'true',
+            'expires_at'    => $expiresAt->toIso8601String(),
         ]);
 
         return redirect($frontendUrl . '?' . $queryParams);
     }
-
     // ==========================================
     // 3. HÀM XỬ LÝ LOGIC CHUNG (PRIVATE)
     // ==========================================

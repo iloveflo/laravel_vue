@@ -307,7 +307,10 @@ const handleSubmit = async () => {
   submitting.value = true
   try {
     if (isEdit.value && props.product) {
-      await axios.put(`/admin/products/${props.product.id}`, payload)
+      await axios.post(`/admin/products/${props.product.id}`, {
+    ...payload,      // Copy toàn bộ dữ liệu form cũ
+    _method: 'PUT'   // Thêm dòng này để báo cho Laravel biết đây là PUT
+});
     } else {
       await axios.post('/admin/products', payload)
     }

@@ -56,7 +56,7 @@
 /* ===== PAGE LAYOUT ===== */
 .contact-page {
   max-width: 820px;
-  margin: 60px auto;
+  margin: 120px auto;
   padding: 0 20px;
   color: #111;
   font-family: "Inter", sans-serif;

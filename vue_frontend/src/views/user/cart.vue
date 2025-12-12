@@ -308,7 +308,10 @@ const updateQuantity = async (cartId, newQuantity) => {
       session_id: getSessionId()
     };
 
-    await axios.put('/cart/update', payload, { headers: getHeaders() });
+    await axios.post('/cart/update',
+    { ...payload, _method: 'PUT' }, // Gộp payload cũ với _method
+    { headers: getHeaders() }       // Giữ nguyên headers
+);
 
     // Thành công -> Load lại giỏ
     await fetchCart();
@@ -355,7 +358,12 @@ const confirmDelete = async () => {
     };
 
     // Gọi API xóa
-    await axios.delete(`/cart/remove/${cartId}`, config);
+   await axios.post(`/cart/remove/${cartId}`, 
+    {
+        _method: 'DELETE' // Dòng này quan trọng: đánh lừa server đây là lệnh DELETE
+    }, 
+    config
+);
 
     // Load lại giỏ hàng
     await fetchCart();

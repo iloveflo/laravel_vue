@@ -1,214 +1,214 @@
 <template>
-  <div class="container mt-4">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h4 class="mb-0">Quản Lý Mã Khuyến Mại</h4>
-        <button class="btn btn-primary" @click="openModal()">
-          <i class="fas fa-plus"></i> Thêm Mã Mới
+  <div class="coupon-page-container">
+    
+    <div class="page-header">
+      <h4 class="page-title">Quản Lý Mã Khuyến Mại</h4>
+      <button class="btn-action primary" @click="openModal()">
+        <i class="fas fa-plus"></i> Thêm Mã Mới
+      </button>
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-group search-box">
+        <input type="text" 
+               v-model="filters.keyword" 
+               @input="handleSearch" 
+               placeholder="Nhập mã code để tìm...">
+      </div>
+
+      <div class="filter-group">
+        <select v-model="filters.status" @change="fetchCoupons(1)">
+          <option value="all">-- Tất cả trạng thái --</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="inactive">Tạm khóa</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <select v-model="filters.filter_expiry" @change="fetchCoupons(1)">
+          <option value="all">-- Tất cả thời hạn --</option>
+          <option value="valid">Còn hạn sử dụng</option>
+          <option value="expired">Đã hết hạn</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <button class="btn-action secondary full-width" @click="resetFilters">
+          <i class="fas fa-sync-alt"></i> Đặt lại
         </button>
-      </div>
-
-      <div class="card-body border-bottom" style="border-bottom: 2px solid #000 !important; background: #f9f9f9;">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <input type="text" class="form-control" 
-                       v-model="filters.keyword" 
-                       @input="handleSearch" 
-                       placeholder="Nhập mã code để tìm...">
-            </div>
-
-            <div class="col-md-3">
-                <select class="form-select" v-model="filters.status" @change="fetchCoupons(1)">
-                    <option value="all">-- Tất cả trạng thái --</option>
-                    <option value="active">Đang hoạt động</option>
-                    <option value="inactive">Tạm khóa</option>
-                </select>
-            </div>
-
-            <div class="col-md-3">
-                <select class="form-select" v-model="filters.filter_expiry" @change="fetchCoupons(1)">
-                    <option value="all">-- Tất cả thời hạn --</option>
-                    <option value="valid">Còn hạn sử dụng</option>
-                    <option value="expired">Đã hết hạn</option>
-                </select>
-            </div>
-
-            <div class="col-md-2">
-                <button class="btn btn-secondary w-100" @click="resetFilters">
-                    <i class="fas fa-sync-alt"></i> Đặt lại
-                </button>
-            </div>
-        </div>
-      </div>
-      <div class="card-body">
-        <div v-if="alert.message" :class="['alert', alert.type === 'success' ? 'alert-success' : 'alert-danger']">
-          {{ alert.message }}
-        </div>
-
-        <div v-if="loading" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status"></div>
-          <p>Đang tải dữ liệu...</p>
-        </div>
-
-        <div v-else class="table-responsive">
-          <table class="table table-bordered table-hover">
-            <thead class="table-light">
-              <tr>
-                <th>Mã Code</th>
-                <th>Giảm giá</th>
-                <th>Điều kiện</th>
-                <th>Lượt dùng</th>
-                <th>Thời gian</th>
-                <th>Trạng thái</th>
-                <th style="width: 150px;">Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="coupon in coupons" :key="coupon.id">
-                <td>
-                  <strong>{{ coupon.code }}</strong><br>
-                  <small class="text-muted">{{ coupon.description }}</small>
-                </td>
-                <td>
-                  <span v-if="coupon.discount_type === 'percent'" class="badge bg-info text-dark">
-                    {{ coupon.discount_value }}%
-                  </span>
-                  <span v-else class="badge bg-success">
-                    -{{ formatCurrency(coupon.discount_value) }}
-                  </span>
-                  <div v-if="coupon.max_discount" class="small text-danger">
-                    Tối đa: {{ formatCurrency(coupon.max_discount) }}
-                  </div>
-                </td>
-                <td>
-                  <small>Đơn tối thiểu:</small><br>
-                  {{ formatCurrency(coupon.min_order_value || 0) }}
-                </td>
-                <td>
-                  {{ coupon.used_count }} / {{ coupon.usage_limit || '∞' }}
-                </td>
-                <td>
-                  <small>
-                    Start: {{ formatDate(coupon.start_date) }} <br>
-                    End: {{ formatDate(coupon.end_date) }}
-                  </small>
-                </td>
-                <td>
-                  <span :class="['badge', coupon.status === 'active' ? 'bg-success' : 'bg-secondary']">
-                    {{ coupon.status === 'active' ? 'Hoạt động' : 'Tạm khóa' }}
-                  </span>
-                </td>
-                <td>
-                  <button class="btn btn-sm btn-warning me-2" @click="editCoupon(coupon)">Sửa</button>
-                  <button class="btn btn-sm btn-danger" @click="deleteCoupon(coupon.id)">Xóa</button>
-                </td>
-              </tr>
-              <tr v-if="coupons.length === 0">
-                <td colspan="7" class="text-center">
-                    Không tìm thấy dữ liệu phù hợp.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <nav v-if="pagination.last_page > 1" class="mt-3">
-          <ul class="pagination justify-content-center">
-            <li class="page-item" :class="{ disabled: pagination.current_page === 1 }">
-              <button class="page-link" @click="fetchCoupons(pagination.current_page - 1)">Trước</button>
-            </li>
-            
-            <li v-for="page in pagination.last_page" :key="page" 
-                class="page-item" :class="{ active: page === pagination.current_page }">
-              <button class="page-link" @click="fetchCoupons(page)">{{ page }}</button>
-            </li>
-
-            <li class="page-item" :class="{ disabled: pagination.current_page === pagination.last_page }">
-              <button class="page-link" @click="fetchCoupons(pagination.current_page + 1)">Sau</button>
-            </li>
-          </ul>
-        </nav>
       </div>
     </div>
 
-    <div v-if="showModal" class="modal-backdrop-custom">
-      <div class="modal-dialog-custom card">
-        <div class="card-header d-flex justify-content-between">
-          <h5 class="mb-0">{{ isEditing ? 'Cập nhật Mã' : 'Thêm Mã Mới' }}</h5>
-          <button type="button" class="btn-close" @click="closeModal()"></button>
+    <div class="main-content">
+      <div v-if="alert.message" :class="['alert-box', alert.type]">
+        {{ alert.message }}
+      </div>
+
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Đang tải dữ liệu...</p>
+      </div>
+
+      <div v-else class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Mã Code</th>
+              <th>Giảm giá</th>
+              <th>Điều kiện</th>
+              <th>Lượt dùng</th>
+              <th>Thời gian</th>
+              <th>Trạng thái</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="coupon in coupons" :key="coupon.id">
+              <td>
+                <strong>{{ coupon.code }}</strong>
+                <div class="description-text">{{ coupon.description }}</div>
+              </td>
+              <td>
+                <span v-if="coupon.discount_type === 'percent'" class="tag info">
+                  {{ coupon.discount_value }}%
+                </span>
+                <span v-else class="tag success">
+                  -{{ formatCurrency(coupon.discount_value) }}
+                </span>
+                <div v-if="coupon.max_discount" class="helper-text danger">
+                  Tối đa: {{ formatCurrency(coupon.max_discount) }}
+                </div>
+              </td>
+              <td>
+                <span class="label">Đơn tối thiểu:</span>
+                <div>{{ formatCurrency(coupon.min_order_value || 0) }}</div>
+              </td>
+              <td>
+                {{ coupon.used_count }} / {{ coupon.usage_limit || '∞' }}
+              </td>
+              <td>
+                <div class="time-info">
+                  Start: {{ formatDate(coupon.start_date) }} <br>
+                  End: {{ formatDate(coupon.end_date) }}
+                </div>
+              </td>
+              <td>
+                <span :class="['status-badge', coupon.status]">
+                  {{ coupon.status === 'active' ? 'Hoạt động' : 'Tạm khóa' }}
+                </span>
+              </td>
+              <td class="action-buttons">
+                <button class="btn-small edit" @click="editCoupon(coupon)">Sửa</button>
+                <button class="btn-small delete" @click="deleteCoupon(coupon.id)">Xóa</button>
+              </td>
+            </tr>
+            <tr v-if="coupons.length === 0">
+              <td colspan="7" class="empty-state">
+                  Không tìm thấy dữ liệu phù hợp.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <nav v-if="pagination.last_page > 1" class="pagination-wrapper">
+        <ul class="pagination-list">
+          <li :class="{ disabled: pagination.current_page === 1 }">
+            <button @click="fetchCoupons(pagination.current_page - 1)">Trước</button>
+          </li>
+          
+          <li v-for="page in pagination.last_page" :key="page" 
+              :class="{ active: page === pagination.current_page }">
+            <button @click="fetchCoupons(page)">{{ page }}</button>
+          </li>
+
+          <li :class="{ disabled: pagination.current_page === pagination.last_page }">
+            <button @click="fetchCoupons(pagination.current_page + 1)">Sau</button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+
+    <div v-if="showModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5>{{ isEditing ? 'Cập nhật Mã' : 'Thêm Mã Mới' }}</h5>
+          <button type="button" class="close-btn" @click="closeModal()">×</button>
         </div>
-        <div class="card-body">
+        
+        <div class="modal-body">
           <form @submit.prevent="saveCoupon">
-             <div class="row g-3">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Mã Code <span class="text-danger">*</span></label>
-                  <input type="text" v-model="form.code" class="form-control" :class="{ 'is-invalid': errors.code }" placeholder="VD: SALE2025">
-                  <div class="invalid-feedback">{{ errors.code?.[0] }}</div>
+             <div class="form-grid">
+              
+              <div class="form-column">
+                <div class="form-group">
+                  <label>Mã Code <span class="required">*</span></label>
+                  <input type="text" v-model="form.code" :class="{ 'error': errors.code }" placeholder="VD: SALE2025">
+                  <span class="error-msg">{{ errors.code?.[0] }}</span>
                 </div>
 
-                <div class="mb-3">
-                  <label class="form-label">Loại giảm giá</label>
-                  <select v-model="form.discount_type" class="form-select">
+                <div class="form-group">
+                  <label>Loại giảm giá</label>
+                  <select v-model="form.discount_type">
                     <option value="percent">Phần trăm (%)</option>
                     <option value="fixed">Số tiền cố định</option>
                   </select>
                 </div>
 
-                <div class="mb-3">
-                  <label class="form-label">Giá trị giảm <span class="text-danger">*</span></label>
-                  <input type="number" v-model="form.discount_value" class="form-control" :class="{ 'is-invalid': errors.discount_value }">
-                  <div class="invalid-feedback">{{ errors.discount_value?.[0] }}</div>
+                <div class="form-group">
+                  <label>Giá trị giảm <span class="required">*</span></label>
+                  <input type="number" v-model="form.discount_value" :class="{ 'error': errors.discount_value }">
+                  <span class="error-msg">{{ errors.discount_value?.[0] }}</span>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Giảm tối đa (Nếu là %)</label>
-                    <input type="number" v-model="form.max_discount" class="form-control">
+                <div class="form-group">
+                    <label>Giảm tối đa (Nếu là %)</label>
+                    <input type="number" v-model="form.max_discount">
                 </div>
               </div>
 
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Đơn tối thiểu</label>
-                  <input type="number" v-model="form.min_order_value" class="form-control">
+              <div class="form-column">
+                <div class="form-group">
+                  <label>Đơn tối thiểu</label>
+                  <input type="number" v-model="form.min_order_value">
                 </div>
 
-                <div class="mb-3">
-                  <label class="form-label">Giới hạn số lần dùng</label>
-                  <input type="number" v-model="form.usage_limit" class="form-control" placeholder="Để trống nếu không giới hạn">
+                <div class="form-group">
+                  <label>Giới hạn số lần dùng</label>
+                  <input type="number" v-model="form.usage_limit" placeholder="Để trống nếu không giới hạn">
                 </div>
 
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <label class="form-label">Ngày bắt đầu</label>
-                        <input type="datetime-local" v-model="form.start_date" class="form-control" :class="{ 'is-invalid': errors.start_date }">
-                        <div class="invalid-feedback">{{ errors.start_date?.[0] }}</div>
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>Ngày bắt đầu</label>
+                        <input type="datetime-local" v-model="form.start_date" :class="{ 'error': errors.start_date }">
+                        <span class="error-msg">{{ errors.start_date?.[0] }}</span>
                     </div>
-                    <div class="col-6 mb-3">
-                        <label class="form-label">Ngày kết thúc</label>
-                        <input type="datetime-local" v-model="form.end_date" class="form-control" :class="{ 'is-invalid': errors.end_date }">
-                         <div class="invalid-feedback">{{ errors.end_date?.[0] }}</div>
+                    <div class="form-group half">
+                        <label>Ngày kết thúc</label>
+                        <input type="datetime-local" v-model="form.end_date" :class="{ 'error': errors.end_date }">
+                         <span class="error-msg">{{ errors.end_date?.[0] }}</span>
                     </div>
                 </div>
 
-                <div class="mb-3">
-                  <label class="form-label">Trạng thái</label>
-                  <select v-model="form.status" class="form-select">
+                <div class="form-group">
+                  <label>Trạng thái</label>
+                  <select v-model="form.status">
                     <option value="active">Hoạt động</option>
                     <option value="inactive">Tạm khóa</option>
                   </select>
                 </div>
               </div>
               
-              <div class="col-12 mb-3">
-                 <label class="form-label">Mô tả</label>
-                 <textarea v-model="form.description" class="form-control" rows="2"></textarea>
+              <div class="form-column full">
+                 <label>Mô tả</label>
+                 <textarea v-model="form.description" rows="2"></textarea>
               </div>
             </div>
 
-            <div class="text-end mt-3">
-              <button type="button" class="btn btn-secondary me-2" @click="closeModal()">Hủy</button>
-              <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+            <div class="modal-footer">
+              <button type="button" class="btn-action secondary" @click="closeModal()">Hủy</button>
+              <button type="submit" class="btn-action primary" :disabled="isSubmitting">
                 {{ isSubmitting ? 'Đang lưu...' : 'Lưu lại' }}
               </button>
             </div>
@@ -343,7 +343,10 @@ const saveCoupon = async () => {
     try {
         let response;
         if (isEditing.value) {
-            response = await axios.put(`${API_URL}/${form.id}`, form);
+            response = await axios.post(`${API_URL}/${form.id}`, {
+        ...form,        // Lấy toàn bộ dữ liệu đang có trong form
+        _method: 'PUT'  // Thêm dòng này để Laravel hiểu là update
+    });
         } else {
             response = await axios.post(API_URL, form);
         }
@@ -368,7 +371,9 @@ const deleteCoupon = async (id) => {
     if (!confirm('Bạn có chắc chắn muốn xóa mã giảm giá này?')) return;
 
     try {
-        await axios.delete(`${API_URL}/${id}`);
+        await axios.post(`${API_URL}/${id}`, {
+    _method: 'DELETE'
+});
         showAlert('Đã xóa mã giảm giá.', 'success');
         fetchCoupons(pagination.value.current_page);
     } catch (error) {
@@ -407,602 +412,354 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ========================================
-   MINIMAL BLACK & WHITE THEME
-   Modern | Square | Artistic
-   ======================================== */
-
+/* ============================
+   1. VARIABLES & RESET
+   ============================ */
 :root {
-  --color-black: #000000;
-  --color-white: #ffffff;
-  --color-gray-50: #fafafa;
-  --color-gray-100: #f5f5f5;
-  --color-gray-200: #e5e5e5;
-  --color-gray-300: #d4d4d4;
-  --color-gray-400: #a3a3a3;
-  --color-gray-600: #525252;
-  --color-gray-800: #262626;
-  --color-gray-900: #171717;
+  --primary: #000000;
+  --bg-page: #f8f9fa;
+  --bg-card: #ffffff;
+  --border-color: #e0e0e0;
+  --border-strong: #000000;
+  --text-main: #212529;
+  --text-light: #6c757d;
+  --danger: #dc3545;
+  --success: #198754;
 }
 
 * {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  background: var(--color-white);
-  color: var(--color-black);
-  line-height: 1.6;
-  letter-spacing: -0.02em;
-}
-
-/* ========================================
-   CONTAINER & LAYOUT
-   ======================================== */
-
-.container {
-  max-width: 1400px;
+.coupon-page-container {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 3rem 2rem;
+  padding: 30px 20px;
+  color: var(--text-main);
+  background-color: var(--bg-page);
+  min-height: 100vh;
 }
 
-.mt-4 {
-  margin-top: 2rem;
-}
-
-/* ========================================
-   CARD COMPONENTS
-   ======================================== */
-
-.card {
-  background: var(--color-white);
-  border: 2px solid var(--color-black);
-  border-radius: 0;
-  box-shadow: 8px 8px 0 var(--color-black);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 10px 10px 0 var(--color-black);
-}
-
-.card-header {
-  background: var(--color-black);
-  color: var(--color-white);
-  padding: 1.5rem 2rem;
-  border-bottom: 2px solid var(--color-black);
+/* ============================
+   2. HEADER
+   ============================ */
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 25px;
 }
 
-.card-header h4,
-.card-header h5 {
-  margin: 0;
-  font-weight: 700;
+.page-title {
   font-size: 1.5rem;
-  letter-spacing: -0.03em;
+  font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: -0.5px;
+  color: var(--primary);
 }
 
-.card-body {
-  padding: 2rem;
-  background: var(--color-white);
+/* ============================
+   3. FILTERS
+   ============================ */
+.filter-section {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 1fr; /* Chia cột tỉ lệ */
+  gap: 15px;
+  margin-bottom: 25px;
+  background: var(--bg-card);
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.03);
 }
 
-/* ========================================
-   BUTTONS
-   ======================================== */
+.filter-group input,
+.filter-group select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  outline: none;
+  background-color: #fff;
+  transition: all 0.2s ease;
+  height: 42px; /* Chiều cao đồng nhất */
+}
 
-.btn {
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.75rem 1.5rem;
-  border: 2px solid var(--color-black);
-  border-radius: 0;
+.filter-group input:focus,
+.filter-group select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+/* ============================
+   4. BUTTONS
+   ============================ */
+button {
   cursor: pointer;
-  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-action {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  text-decoration: none;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--color-black);
-  color: var(--color-white);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-white);
-  color: var(--color-black);
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--color-black);
-}
-
-.btn-secondary {
-  background: var(--color-white);
-  color: var(--color-black);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--color-gray-100);
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--color-black);
-}
-
-.btn-warning {
-  background: var(--color-white);
-  color: var(--color-black);
-  border-color: var(--color-gray-400);
-}
-
-.btn-warning:hover {
-  background: var(--color-gray-900);
-  color: var(--color-white);
-  border-color: var(--color-black);
-}
-
-.btn-danger {
-  background: var(--color-black);
-  color: var(--color-white);
-}
-
-.btn-danger:hover {
-  background: var(--color-gray-800);
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--color-black);
-}
-
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-}
-
-.btn-close {
-  background: transparent;
-  border: none;
-  color: var(--color-white);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease;
-}
-
-.btn-close::before {
-  content: "×";
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.btn-close:hover {
-  transform: rotate(90deg);
-}
-
-.me-2 {
-  margin-right: 0.5rem;
-}
-
-/* ========================================
-   ALERTS
-   ======================================== */
-
-.alert {
-  padding: 1rem 1.5rem;
-  border: 2px solid var(--color-black);
-  margin-bottom: 1.5rem;
-  font-weight: 500;
-  border-radius: 0;
-}
-
-.alert-success {
-  background: var(--color-white);
-  border-left: 6px solid var(--color-black);
-}
-
-.alert-danger {
-  background: var(--color-black);
-  color: var(--color-white);
-}
-
-/* ========================================
-   TABLE
-   ======================================== */
-
-.table-responsive {
-  overflow-x: auto;
-  border: 2px solid var(--color-black);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--color-white);
-}
-
-.table thead {
-  background: var(--color-black);
-  color: var(--color-white);
-}
-
-.table th {
-  padding: 1rem;
-  text-align: left;
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  border: 2px solid var(--color-black);
-}
-
-.table td {
-  padding: 1rem;
-  border: 2px solid var(--color-black);
-  vertical-align: top;
-}
-
-.table tbody tr {
-  transition: background 0.15s ease;
-}
-
-.table tbody tr:hover {
-  background: var(--color-gray-50);
-}
-
-.table tbody tr:nth-child(even) {
-  background: var(--color-gray-50);
-}
-
-.table tbody tr:nth-child(even):hover {
-  background: var(--color-gray-100);
-}
-
-/* ========================================
-   BADGES
-   ======================================== */
-
-.badge {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border: 2px solid var(--color-black);
-  border-radius: 0;
-}
-
-.bg-success {
-  background: var(--color-black);
-  color: var(--color-white);
-}
-
-.bg-secondary {
-  background: var(--color-white);
-  color: var(--color-black);
-}
-
-.bg-info {
-  background: var(--color-gray-200);
-  color: var(--color-black);
-  border-color: var(--color-gray-400);
-}
-
-.text-dark {
-  color: var(--color-black);
-}
-
-/* ========================================
-   FORM ELEMENTS
-   ======================================== */
-
-.form-label {
-  display: block;
-  margin-bottom: 0.5rem;
+  padding: 0 20px;
+  height: 42px;
   font-weight: 600;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.form-control,
-.form-select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid var(--color-black);
-  border-radius: 0;
-  font-family: inherit;
-  font-size: 1rem;
-  background: var(--color-white);
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--primary);
   transition: all 0.2s ease;
 }
 
-.form-control:focus,
-.form-select:focus {
-  outline: none;
-  border-color: var(--color-black);
-  box-shadow: 4px 4px 0 var(--color-gray-300);
-  transform: translate(-2px, -2px);
+.btn-action.primary {
+  background-color: black;
+  color: #fbfbfb;
+  border: 1px solid var(--primary);
+}
+.btn-action.primary:hover {
+  background-color: #f80303;
+  transform: translateY(-1px);
 }
 
-.form-control.is-invalid {
-  border-color: var(--color-black);
-  border-width: 3px;
+.btn-action.secondary {
+  background-color: #fff;
+  color: var(--primary);
+}
+.btn-action.secondary:hover {
+  background-color: #f0f0f0;
 }
 
-textarea.form-control {
-  resize: vertical;
-  min-height: 100px;
-}
-
-.invalid-feedback {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.875rem;
-  color: var(--color-black);
-  font-weight: 600;
-}
-
-.mb-0 {
-  margin-bottom: 0;
-}
-
-.mb-3 {
-  margin-bottom: 1.5rem;
-}
-
-.mt-3 {
-  margin-top: 1.5rem;
-}
-
-/* ========================================
-   GRID SYSTEM
-   ======================================== */
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0 -0.75rem;
-}
-
-.col-md-6,
-.col-6,
-.col-12 {
-  padding: 0 0.75rem;
-}
-
-.col-12 {
+.full-width {
   width: 100%;
 }
 
-.col-6 {
-  width: 50%;
+/* Button nhỏ trong bảng */
+.btn-small {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  border: none;
+  font-weight: 600;
+  margin-right: 5px;
+}
+.btn-small.edit { background: #fff; border: 1px solid #ffc107; color: #b48600; }
+.btn-small.edit:hover { background: #ffc107; color: #000; }
+
+.btn-small.delete { background: #fff; border: 1px solid #dc3545; color: #dc3545; }
+.btn-small.delete:hover { background: #dc3545; color: #fff; }
+
+/* ============================
+   5. TABLE
+   ============================ */
+.table-wrapper {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden; /* Bo góc cho bảng */
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
 
-.col-md-6 {
-  width: 50%;
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
 }
 
-.g-3 {
-  margin: 0 -0.75rem;
-}
-
-/* ========================================
-   LOADING & SPINNER
-   ======================================== */
-
-.text-center {
-  text-align: center;
-}
-
-.py-5 {
-  padding: 3rem 0;
-}
-
-.spinner-border {
-  width: 3rem;
-  height: 3rem;
-  border: 4px solid var(--color-gray-300);
-  border-top-color: var(--color-black);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ========================================
-   PAGINATION
-   ======================================== */
-
-.pagination {
-  display: flex;
-  list-style: none;
-  gap: 0.5rem;
-  padding: 0;
-  margin: 0;
-}
-
-.justify-content-center {
-  justify-content: center;
-}
-
-.page-item {
-  list-style: none;
-}
-
-.page-link {
-  padding: 0.5rem 1rem;
-  border: 2px solid var(--color-black);
-  background: var(--color-white);
-  color: var(--color-black);
-  cursor: pointer;
+.data-table th {
+  background-color: var(--primary);
+  color: #fff;
+  padding: 15px;
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 0.875rem;
-  transition: all 0.15s ease;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
 }
 
-.page-link:hover {
-  background: var(--color-black);
-  color: var(--color-white);
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--color-gray-400);
+.data-table td {
+  padding: 16px 15px;
+  border-bottom: 1px solid #f2f2f2;
+  font-size: 0.9rem;
+  vertical-align: top;
 }
 
-.page-item.active .page-link {
-  background: var(--color-black);
-  color: var(--color-white);
+.data-table tr:hover td {
+  background-color: #fafafa;
 }
 
-.page-item.disabled .page-link {
-  opacity: 0.3;
-  cursor: not-allowed;
+.data-table tr:last-child td {
+  border-bottom: none;
 }
 
-.page-item.disabled .page-link:hover {
-  background: var(--color-white);
-  color: var(--color-black);
-  transform: none;
-  box-shadow: none;
+/* Các thành phần trong bảng */
+.description-text { font-size: 0.8em; color: var(--text-light); margin-top: 4px; }
+.label { font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; }
+.time-info { font-size: 0.8rem; line-height: 1.4; color: #555; }
+.helper-text { font-size: 0.75rem; margin-top: 2px; }
+.helper-text.danger { color: var(--danger); }
+
+/* Badges & Tags */
+.tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+.tag.info { background: #e0f7fa; color: #006064; border: 1px solid #b2ebf2; }
+.tag.success { background: #e8f5e9; color: #1b5e20; border: 1px solid #c8e6c9; }
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.status-badge.active { background: #d1e7dd; color: #0f5132; }
+.status-badge.inactive { background: #e2e3e5; color: #41464b; }
+
+.empty-state { text-align: center; padding: 40px !important; color: var(--text-light); font-style: italic; }
+
+/* ============================
+   6. PAGINATION
+   ============================ */
+.pagination-wrapper { margin-top: 20px; display: flex; justify-content: center; }
+.pagination-list { list-style: none; display: flex; gap: 5px; }
+
+.pagination-list button {
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+  background: #fefcfc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  transition: all 0.2s;
 }
 
-/* ========================================
-   MODAL
-   ======================================== */
+.pagination-list button:hover { background: #f0f0f0; }
+.pagination-list li.active button { background: var(--primary); color: #1c1b1b; border-color: var(--primary); }
+.pagination-list li.disabled button { opacity: 0.5; pointer-events: none; }
 
-.modal-backdrop-custom {
+/* ============================
+   7. MODAL
+   ============================ */
+.modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(254, 250, 250, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(5px); /* Hiệu ứng mờ nền */
   z-index: 1000;
-  padding: 2rem;
-  animation: fadeIn 0.2s ease;
-  backdrop-filter: blur(4px);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.modal-dialog-custom {
-  width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  overflow-y: auto;
-  animation: slideUp 0.3s ease;
-  background: var(--color-white);
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-/* ========================================
-   UTILITY CLASSES
-   ======================================== */
-
-.d-flex {
   display: flex;
-}
-
-.justify-content-between {
-  justify-content: space-between;
-}
-
-.align-items-center {
+  justify-content: center;
   align-items: center;
 }
 
-.text-end {
+.modal-content {
+  background: #fff;
+  width: 95%;
+  max-width: 800px;
+  border: 2px solid var(--primary); /* Viền đen đậm */
+  box-shadow: 12px 12px 0px rgba(0,0,0,0.15); /* Shadow cứng */
+  animation: slideIn 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+}
+
+.modal-header h5 { font-size: 1.1rem; font-weight: 700; text-transform: uppercase; }
+.close-btn { background: none; border: none; font-size: 1.5rem; line-height: 1; padding: 0 10px; }
+
+.modal-body { padding: 0; overflow-y: auto; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  padding: 30px;
+}
+
+.form-column { display: flex; flex-direction: column; gap: 15px; }
+.form-column.full { grid-column: 1 / -1; }
+.form-row { display: flex; gap: 15px; }
+.form-group.half { flex: 1; }
+
+.form-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.required { color: var(--danger); }
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+.form-group input:focus, .form-group textarea:focus { border-color: var(--primary); outline: none; }
+.form-group textarea { resize: vertical; min-height: 80px; }
+
+/* Validation styles */
+.error { border-color: var(--danger) !important; background-color: #fff8f8; }
+.error-msg { font-size: 0.75rem; color: var(--danger); margin-top: 4px; display: block; }
+
+.modal-footer {
+  padding: 20px 30px;
+  border-top: 1px solid var(--border-color);
+  background: #fafafa;
   text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
-.text-danger {
-  color: var(--color-black);
-  font-weight: 700;
+@keyframes slideIn {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
-.text-muted {
-  color: var(--color-gray-600);
-  font-size: 0.875rem;
+/* ============================
+   8. UTILITIES (Alert & Loading)
+   ============================ */
+.alert-box { padding: 15px; margin-bottom: 20px; border-radius: 6px; font-weight: 500; font-size: 0.9rem; border: 1px solid transparent; }
+.alert-box.success { background-color: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+.alert-box.error { background-color: #f8d7da; color: #842029; border-color: #f5c2c7; }
+
+.loading-state { padding: 40px; text-align: center; color: var(--text-light); }
+.spinner {
+  width: 40px; height: 40px; margin: 0 auto 10px;
+  border: 4px solid #f3f3f3; border-top: 4px solid var(--primary);
+  border-radius: 50%; animation: spin 1s linear infinite;
 }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-.small {
-  font-size: 0.875rem;
-}
-
-strong {
-  font-weight: 700;
-}
-
-/* ========================================
-   RESPONSIVE
-   ======================================== */
-
+/* ============================
+   9. RESPONSIVE
+   ============================ */
 @media (max-width: 768px) {
-  .col-md-6 {
-    width: 100%;
-  }
-  
-  .card-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-  
-  .table {
-    font-size: 0.875rem;
-  }
-  
-  .table th,
-  .table td {
-    padding: 0.75rem 0.5rem;
-  }
-  
-  .btn-sm {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.7rem;
-  }
-  
-  .modal-dialog-custom {
-    margin: 1rem;
-  }
-
-  .container {
-    padding: 1.5rem 1rem;
-  }
+  .filter-section { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; padding: 20px; gap: 20px; }
+  .table-wrapper { overflow-x: auto; }
+  .data-table th, .data-table td { white-space: nowrap; }
 }
 </style>

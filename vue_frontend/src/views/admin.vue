@@ -44,16 +44,66 @@
   </main>
 
 </div>
+
+<div class="header-wrapper">
+    <div v-if="showSessionAlert" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <h3>Phiên đăng nhập hết hạn</h3>
+        <p>Để bảo mật tài khoản, phiên làm việc của bạn đã kết thúc. Vui lòng đăng nhập lại.</p>
+        <button @click="handleSessionExpiredConfirm" class="modal-btn">
+          Đăng nhập lại ngay
+        </button>
+      </div>
+    </div>
+    </div>
 </template>
 
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted,onUnmounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
 const currentUser = ref(null)
 const router = useRouter()
+const showSessionAlert = ref(false)
+let sessionCheckInterval = null
+
+
+
+// [MỚI] Hàm kiểm tra thời gian hết hạn
+const checkSessionExpiration = () => {
+  const token = localStorage.getItem('token')
+  const expiresAtString = localStorage.getItem('expires_at') // Backend phải trả về cái này lúc login
+
+  // Nếu không có token hoặc chưa lưu thời gian hết hạn thì thôi
+  if (!token || !expiresAtString) return
+
+  const now = new Date()
+  const expirationTime = new Date(expiresAtString)
+
+  // So sánh: Nếu giờ hiện tại >= giờ hết hạn
+  if (now >= expirationTime) {
+    showSessionAlert.value = true
+    // Dừng kiểm tra để đỡ tốn tài nguyên
+    if (sessionCheckInterval) clearInterval(sessionCheckInterval)
+  }
+}
+
+// [MỚI] Xử lý khi bấm nút "Đăng nhập lại"
+const handleSessionExpiredConfirm = async () => {
+  showSessionAlert.value = false
+  await logout() // Tận dụng hàm logout có sẵn bên dưới
+  router.push('/login')
+}
+
 
 const fetchCurrentUser = async () => {
 	try {
@@ -78,6 +128,9 @@ const fetchCurrentUser = async () => {
 
 onMounted(() => {
 	fetchCurrentUser()
+  // [MỚI] Kích hoạt bộ đếm kiểm tra mỗi 1 phút (60000ms)
+  checkSessionExpiration() // Kiểm tra ngay lập tức khi load trang
+  sessionCheckInterval = setInterval(checkSessionExpiration, 60000)
 	// listen for auth changes (login/logout) from other components
 	const onAuthChanged = () => fetchCurrentUser()
 	window.addEventListener('auth-changed', onAuthChanged)
@@ -88,6 +141,10 @@ onBeforeUnmount(() => {
 	const handler = window.__onAuthChanged
 	if (handler) window.removeEventListener('auth-changed', handler)
 })
+
+onUnmounted(() => {
+  if (sessionCheckInterval) clearInterval(sessionCheckInterval);
+});
 
 const logout = async () => {
   try {
@@ -111,6 +168,7 @@ const logout = async () => {
   localStorage.removeItem('token')
   // Xóa remembered email nếu muốn (user bình thường)
   localStorage.removeItem('rememberedEmail')
+  localStorage.removeItem('expires_at')
 
   // Xóa header Authorization mặc định
   if (axios.defaults.headers.common['Authorization']) {
@@ -141,6 +199,77 @@ const avatarPath = (path) => {
 
 
 <style scoped>
+/* [MỚI] CSS CHO MODAL SESSION */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6); /* Nền tối mờ */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Đảm bảo nằm trên cùng */
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  animation: slideUp 0.3s ease;
+}
+
+.modal-icon {
+  margin-bottom: 15px;
+}
+
+.modal-content h3 {
+  margin: 0 0 10px;
+  color: #1f2937;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.modal-content p {
+  margin-bottom: 25px;
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.modal-btn {
+  background-color: #000; /* Màu đen chủ đạo của web bạn */
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.modal-btn:hover {
+  background-color: #333;
+  transform: translateY(-1px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 .admin-container {
     display: flex;
     min-height: 100vh;

@@ -270,7 +270,9 @@ const onSaved = () => {
 const deleteProduct = async (id) => {
   if (!confirm('Bạn chắc chắn muốn xóa sản phẩm này?')) return
   try {
-    await axios.delete(`/admin/products/${id}`)
+    await axios.post(`/admin/products/${id}`, {
+    _method: 'DELETE'
+});
     fetchProducts(products.value.current_page || 1)
   } catch (e) {
     console.error(e)
