@@ -1,0 +1,96 @@
+version: "3.8"
+
+services:
+  # =========================
+  # Laravel API
+  # =========================
+  laravel-api:
+    build:
+      context: ./laravel_api
+      dockerfile: Dockerfile
+      target: production
+    container_name: laravel_api_prod
+    restart: unless-stopped
+    working_dir: /var/www/html
+    ports:
+      - "8000:80"
+    volumes:
+      - ./laravel_api:/var/www/html
+      - laravel-storage:/var/www/html/storage
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: florentic
+      DB_USERNAME: root
+      DB_PASSWORD: huycan2310
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+  # =========================
+  # Vue Frontend
+  # =========================
+  vue-frontend:
+    build:
+      context: ./vue_frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: vue_frontend_prod
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_URL: http://laravel_api_prod
+    depends_on:
+      laravel-api:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # =========================
+  # MySQL Database
+  # =========================
+  db:
+    image: mysql:8.0
+    container_name: mysql_db_prod
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: florentic
+      MYSQL_ROOT_PASSWORD: huycan2310
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-phuycan2310"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  laravel-storage:
+  mysql-data:
+
+networks:
+  app-network:
+    driver: bridge

@@ -1,0 +1,45 @@
+# Dependencies
+/vendor
+/node_modules
+
+# Environment files
+.env
+.env.backup
+.env.production
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Testing
+/tests
+.phpunit.result.cache
+phpunit.xml
+
+# Documentation
+README.md
+DOCKER.md
+
+# Storage (will be mounted as volume)
+/storage/*.key
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+
+# Build artifacts
+/public/hot
+/public/storage
+/public/build
+
+# OS files
+.DS_Store
+Thumbs.db

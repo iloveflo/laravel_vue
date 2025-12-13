@@ -1,0 +1,44 @@
+services:
+  laravel-api:
+    build:
+      context: ./laravel_api
+      dockerfile: Dockerfile
+      target: production
+    container_name: laravel_api
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_DATABASE: florentic
+      DB_USERNAME: root
+      DB_PASSWORD: huycan2310
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - laravel-api
+    networks:
+      - app-network
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: florentic
+      MYSQL_ROOT_PASSWORD: huycan2310
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+
+volumes:
+  mysql-data:
+
+networks:
+  app-network:
+    driver: bridge

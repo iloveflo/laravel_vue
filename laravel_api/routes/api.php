@@ -18,6 +18,11 @@ use App\Http\Controllers\User\ProfileController;
 use App\Http\Controllers\User\OrderUserController;
 use App\Http\Controllers\Admin\CouponController;
 
+// Health check endpoint for Docker
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok', 'timestamp' => now()]);
+});
+
 Route::get('/captcha', [AuthController::class, 'getCaptcha']);
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
